@@ -1,0 +1,31 @@
+﻿  main.cpp
+  ManyFunctions.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(558,29): warning C4018: '<': signed/unsigned mismatch
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1053,37): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1058,37): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1109,34): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(794,82): warning C4101: 'mirrorProjection': unreferenced local variable
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1323,34): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1249,44): warning C4101: 'view': unreferenced local variable
+  meshObj.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.cpp(285,68): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.cpp(300,68): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.cpp(309,32): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  Scene.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(28,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(81,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(173,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(211,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(446,40): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(451,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(456,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(462,40): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(467,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(472,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(635,46): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(635,37): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(847,29): warning C4018: '<': signed/unsigned mismatch
+  shaderObj.cpp
+  Generating Code...
+  glad.c
+  Lyra Engine.vcxproj -> C:\Users\munee\source\repos\Lyra Engine\x64\Debug\Lyra Engine.exe

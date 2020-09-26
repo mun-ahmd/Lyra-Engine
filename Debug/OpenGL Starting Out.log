@@ -1,0 +1,9 @@
+﻿  ManyFunctions.cpp
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(191,11): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(192,11): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(199,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(200,10): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(202,37): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(202,28): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\OpenGl starting out\OpenGL Starting Out\ManyFunctions.cpp(461,25): warning C4018: '<': signed/unsigned mismatch
+  OpenGL Starting Out.vcxproj -> C:\Users\munee\source\repos\OpenGl starting out\Debug\OpenGL Starting Out.exe

@@ -1,0 +1,4 @@
+dirLight , pokemon , color=(5.0,5.0,5.0) , direction=(1.0,0.0,1.0)
+model , lol , location=3DModelData\marsLand(nishchay\map.obj
+model , lmao , location=3DModelData\birchTree\birchTree.obj
+camera , default=true
