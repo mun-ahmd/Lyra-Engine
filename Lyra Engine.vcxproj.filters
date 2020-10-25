@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{c634148b-c567-47ee-adb1-d17d3cbf703e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Lyra Engine.cpp">
@@ -42,6 +45,18 @@
     <ClCompile Include="glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MaterialObj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Project.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Material_Manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model_Importer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Scene.h">
@@ -65,5 +80,85 @@
     <ClInclude Include="meshObj.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MaterialObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Project.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Material_Manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model_Importer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\forwardRenderVertex.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\gaussianBlurFragment.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\gaussianBlurVertex.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\geometryPassF.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\geometryPassV.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\lightCubeFragmentShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\lightCubeVertexShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\lightingPassF.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\lightingPassV.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\reflectCubeFragment.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\reflectCubeVertex.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\reflectionFragmentShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\reflectionVertexShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\shadowsShaderFragment.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\shadowsShaderVertex.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\skyGradiantF.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\skyGradiantV.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\textureDrawFragment.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\textureDrawVertex.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\additiveMixTexF.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\additiveMixTexV.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\forwardRenderFragment.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

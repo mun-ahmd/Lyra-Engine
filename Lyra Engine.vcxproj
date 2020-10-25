@@ -81,6 +81,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(ProjectDir)</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -133,12 +134,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;assimp-vc142-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -148,7 +152,11 @@
     <ClCompile Include="Lyra Engine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ManyFunctions.cpp" />
+    <ClCompile Include="MaterialObj.cpp" />
+    <ClCompile Include="Material_Manager.cpp" />
     <ClCompile Include="meshObj.cpp" />
+    <ClCompile Include="Model_Importer.cpp" />
+    <ClCompile Include="Project.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="shaderObj.cpp" />
   </ItemGroup>
@@ -156,10 +164,38 @@
     <ClInclude Include="cameraObj.h" />
     <ClInclude Include="lightObj.h" />
     <ClInclude Include="ManyFunctions.h" />
+    <ClInclude Include="MaterialObj.h" />
+    <ClInclude Include="Material_Manager.h" />
     <ClInclude Include="meshObj.h" />
+    <ClInclude Include="Model_Importer.h" />
+    <ClInclude Include="Project.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shaderObj.h" />
     <ClInclude Include="stb_image.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\additiveMixTexF.glsl" />
+    <None Include="Shaders\additiveMixTexV.glsl" />
+    <None Include="Shaders\forwardRenderFragment.glsl" />
+    <None Include="Shaders\forwardRenderVertex.glsl" />
+    <None Include="Shaders\gaussianBlurFragment.glsl" />
+    <None Include="Shaders\gaussianBlurVertex.glsl" />
+    <None Include="Shaders\geometryPassF.glsl" />
+    <None Include="Shaders\geometryPassV.glsl" />
+    <None Include="Shaders\lightCubeFragmentShader.glsl" />
+    <None Include="Shaders\lightCubeVertexShader.glsl" />
+    <None Include="Shaders\lightingPassF.glsl" />
+    <None Include="Shaders\lightingPassV.glsl" />
+    <None Include="Shaders\reflectCubeFragment.glsl" />
+    <None Include="Shaders\reflectCubeVertex.glsl" />
+    <None Include="Shaders\reflectionFragmentShader.glsl" />
+    <None Include="Shaders\reflectionVertexShader.glsl" />
+    <None Include="Shaders\shadowsShaderFragment.glsl" />
+    <None Include="Shaders\shadowsShaderVertex.glsl" />
+    <None Include="Shaders\skyGradiantF.glsl" />
+    <None Include="Shaders\skyGradiantV.glsl" />
+    <None Include="Shaders\textureDrawFragment.glsl" />
+    <None Include="Shaders\textureDrawVertex.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

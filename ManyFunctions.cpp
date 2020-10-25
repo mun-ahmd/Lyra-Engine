@@ -866,8 +866,6 @@ void imageRender(GLFWwindow* window)
 	Model cubePlayer = Model(R"(3DModelData\marsLand(nishchay\map.obj)");
 
 	//float timePreStore = glfwGetTime();	birch.storeToFastLoad();	cout << glfwGetTime() - timePreStore;
-	EmptyNode birchtrees5 = EmptyNode(&scene);
-	birchtrees5.identify = "aaaaaaa";
 	/*
 	ModelNode birch1 = ModelNode(&birchtrees5, &birch);
 	ModelNode birch2 = ModelNode(&birchtrees5, &birch); birch2.translate(glm::vec3(2.5, 0, 0));birch2.rotateDegrees(40, glm::vec3(0, 1, 0));birch2.scale(0.93);
@@ -887,14 +885,12 @@ void imageRender(GLFWwindow* window)
 	ModelNode birch16 = ModelNode(&birchtrees5, &birch); birch16.translate(glm::vec3(0.8, 0, -2.25));birch16.rotateDegrees(86, glm::vec3(0, 1, 0));birch16.scale(0.90);
 	ModelNode birch17 = ModelNode(&birchtrees5, &birch); birch17.translate(glm::vec3(0.65, 0, -1.58));birch17.rotateDegrees(90, glm::vec3(0, 1, 0));birch17.scale(0.90);
 	*/
-	birchtrees5.translate(glm::vec3(2.5, 0, 0));
 	//cout <<"\n\n\n\n\n\n\n\n"<< birchtrees5.identify <<"\n"<< birchtrees5Copy->identify<< "\n\n\n\n\n\n\n\n\n\n";
 	//birchNode.rotateDegrees(90, glm::vec3(0, 0, 1));
 	
 	ModelNode playerNode = ModelNode(&scene, &cubePlayer);
 
 	DirectionalLight dirLight = DirectionalLight(glm::vec3(0.4f, 0.2f, 0.6f), glm::vec3(1)*15.f);
-	LightNode sunNode = LightNode(&scene, &dirLight);
 	//dirLight.setIntensity(6);
 	//glm::mat4 modelCube = glm::mat4(1);
 	//modelCube = glm::translate(modelCube, dirLight.position);
@@ -1229,10 +1225,10 @@ void imageRender222(GLFWwindow* window)
 	Shader lightShader = Shader(shaderDir + "forwardRenderVertex.glsl", shaderDir + "forwardRenderFragment.glsl");
 	Shader deferredFirstPass = Shader(shaderDir + "geometryPassV.glsl", shaderDir + "geometryPassF.glsl");
 	Shader deferredSecondPass = Shader(shaderDir + "lightingPassV.glsl", shaderDir + "lightingPassF.glsl");
-	Shader  texDrawShader = Shader(shaderDir + "textureDrawVertex.glsl", shaderDir + "textureDrawFragment.glsl");
+	Shader texDrawShader = Shader(shaderDir + "textureDrawVertex.glsl", shaderDir + "textureDrawFragment.glsl");
 	Shader gaussianBlurShader = Shader(shaderDir + "gaussianBlurVertex.glsl", shaderDir + "gaussianBlurFragment.glsl");
 	Shader additiveMixTexShader = Shader(shaderDir + "additiveMixTexV.glsl", shaderDir + "additiveMixTexF.glsl");
-
+	Shader shadowsShader = Shader(shaderDir + "shadowsShaderVertex.glsl", shaderDir + "shadowsShaderFragment.glsl");
 
 
 	//Shader reflectionShader = Shader(shaderDir + "reflectionVertexShader.glsl", shaderDir + "reflectionFragmentShader.glsl");
@@ -1271,26 +1267,31 @@ void imageRender222(GLFWwindow* window)
 	float FPS = 0.0f;
 
 
+
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
+	std::cout << sizeof(glm::mat4);
 	Scene scene1 = Scene(window, "scenefile.txt");
 
-	//Model model2(R"(3DModelData\cube\cube.obj)");
-	//ModelNode modelNode = ModelNode(&scene1, &model2);
+	Model model2(R"(C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\3DModelData\birchTree\birchTree.obj)");
+	//ModelNode modelNode = ModelNode(&scene1, &model2)
+	model2.storeModelToL3D("nishchay_is_powerful.L3D");
+	
+	
 
 		
 	for (int i = 0; i < scene1.getChildren().size();++i)
 	{
-		cout << scene1.getChildren()[i]->identify;
+		cout << scene1.getChildren()[i]->internal_name;
 	}
 
 	std::cout << lightShader.getFragmentShaderSource(50);
 	std::cout << lightShader.getVertexShaderSource(50);
 
-	scene1.setupDeferredShading(WINDOW_WIDTH, WINDOW_HEIGHT);
+	scene1.setupDeferredShading();
 
 
 	scene1.setGaussianBlurState(true);
@@ -1326,6 +1327,9 @@ void imageRender222(GLFWwindow* window)
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//scene1.ShadowsPass(shadowsShader);
+
 		scene1.GeometryPass(deferredFirstPass);
 
 		scene1.LightingPass(deferredSecondPass);

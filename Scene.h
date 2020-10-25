@@ -2,68 +2,152 @@
 #include "meshObj.h"
 #include "cameraObj.h"
 #include "lightObj.h"
+#include "Material_Manager.h"
 #include <sstream>
+
+
+class Transform
+{
+private:
+	glm::vec3 translation;
+	glm::vec3 scaleSize;
+	glm::vec4 rotation; //the first three values are the axis of rotation, the last is the angle rotated in radians
+public:
+	Transform();
+	void translate(glm::vec3 translationIN);
+	void scale(glm::vec3 scaleIN);
+	void rotate(glm::vec3 rotationAxis, float radians);
+
+	glm::mat4 getModelMatrix();
+};
+
+enum NODE_TYPE
+{
+	MODEL_NODE,
+	DIR_LIGHT_NODE,
+	POINT_LIGHT_NODE,
+	SPOT_LIGHT_NODE,
+	SCENE_NODE
+};
 
 
 class Node {
 protected:
+	Node();
 	Node* parent;
 	std::vector<Node*> children;
-	void* objectContained;
-	glm::mat4 model = glm::mat4(1);
-	//I store scale, apply it before drawing, because it messes up group translations otherwise
-	glm::vec3 modelScale = glm::vec3(1); 
-	int copiesCount = 0;
-
-	Node();
-	Node(Node* parent, std::string identify);
-	void propagateTranslationToChildren(glm::vec3 translation);
-	void propagateRotationToChildren(float radians, glm::vec3 axis);
-
+	NODE_TYPE typeOfNode;
+	void doInParentPath(void func(Node*));
 public:
-	std::string identify;
 	std::string name;
+	std::string internal_name;
 
-	virtual void addToLightDraw(Node*) { std::cout << "TRYING TO ADD Light TO Node NOT Scene\n"; }
-	virtual void addToDraw(Node*) { std::cout << "TRYING TO ADD DrawObj TO Node NOT Scene\n"; }
+	Transform transform;
 
-	virtual void cleanupCall(Shader& shader){}
 
-	Node* copyNode(Node*);
 
-	void addChildren(Node* childrenIN);
-	void removeChild(Node* child);
+	~Node();
 
-	virtual void drawCall(Shader& shader) = 0;
-	void drawGroup(Shader& shader);
-	
-	Node* getRootParent();
-	Node* getRootParent(void func(Node*));
+	void changeParent_only(Node* newParentNode);
+	//please remember this only changes the parent, NOTHING ELSE
+	void addChildren(Node* nodeToAdd);
+	void addChildren(Node* childrenNodes, int number_of_children);
+	void addChildren(std::vector<Node*> childrenNodes);
+
+	void removeChild(Node* childNode);
+
 	std::vector<Node*> getChildren();
+
+	NODE_TYPE getNodeType();
+	Node* getRootParent();
+
 	void printDirectory();
 
-	void translate(glm::vec3 displacement);
-	void rotate(float radians, glm::vec3 axis);
-	void rotateDegrees(float degrees, glm::vec3 axis);
-	void scale(float scaleFactor);
-	void scale(glm::vec3 scale);
-	void scale(float scaleX, float scaleY, float scaleZ = 1.0f);
-	void setPosition(glm::vec3 newPosition);
-	void setRotation(float newRot_inRadians, glm::vec3 axis);
-	void setRotationDegrees(float newRot_inDegrees, glm::vec3 axis);
-	void setScale(float newScale);
+	
+};
+
+
+
+
+class ModelNode : public Node {
+private:
+	Model* model;
+public:
+	
+	ModelNode(Node* parentIN, Model* model);
+	void drawCall(Shader& shader);
+	void cleanupCall(Shader& shader);
+};
+
+
+class DirLightNode : public Node {
+private:
+	DirectionalLight* dirLight;
+	bool shadowsON = false;
+	void setupShadows();
+public:
+	DirLightNode(Node* parentIN, DirectionalLight* dirLight);
+	void cleanupCall(Shader& shader);
+	void shadowDrawCall(Shader& shader, unsigned int squareVAO);
+	void drawCall(Shader& shader);
+	void shadowSetupCall();
+};
+
+class SpotLightNode : public Node {
+private:
+	Spotlight* spotlight;
+public:
+	SpotLightNode(Node* parentIN, Spotlight* spotLight);
+	void drawCall(Shader& shader);
+	void cleanupCall(Shader& shader) {};
+
 
 };
+
+class PointLightNode : public Node {
+private:
+	PointLight* pointLight;
+public:
+	PointLightNode(Node* parentIN, PointLight* pointLight);
+	void drawCall(Shader& shader);
+	void cleanupCall(Shader& shader) {};
+};
+
+
+
+
+class SCENE_LIGHTS
+{
+public:
+
+	std::vector<SpotLightNode*> spotLightNodes;
+	std::vector<PointLightNode*> pointLightNodes;
+	std::vector<DirLightNode*> dirLightNodes;
+	SCENE_LIGHTS() = default;
+	SCENE_LIGHTS(std::vector<SpotLightNode*> sptLtIN, std::vector<PointLightNode*> ptLtIN, std::vector<DirLightNode*> dirLts);
+	
+};
+
+class SCENE_MODELS
+{
+public:
+	Material_Manager scene_materials;
+	std::vector<ModelNode*> modelNodes;
+	SCENE_MODELS() = default;
+};
+
+
 
 class Scene : public Node {
 private:
 	unsigned int squareVAO;
-	std::vector<Node*> meshDrawList;
-	std::vector<Node*> lightDrawList;
+	SCENE_LIGHTS lights;
+	SCENE_MODELS models;
 	std::vector<std::string> loadedModelPaths;
 	Camera* mainCamera;
 	double mouseLastX, mouseLastY;
 	bool hasMouseMovedOnce = false;
+	int SCR_WIDTH, SCR_HEIGHT;
 	GLFWwindow* currentWindow;
 	unsigned int gPosition, gNormal, gAlbedoSpec;
 	unsigned int gBuffer;
@@ -72,15 +156,25 @@ private:
 	bool gaussianBlurState = false;
 	unsigned int pingpongFBO[2];
 	unsigned int pingpongBuffer[2];
+	void reGetWindowDimensions()
+	{
+		glfwGetWindowSize(this->currentWindow, &this->SCR_WIDTH, &this->SCR_HEIGHT);
+	}
 public:
-	Scene(GLFWwindow* windowUsing ,Camera* camera) {
-		parent = NULL;
-		identify = "root_node";
+	Scene(GLFWwindow* windowUsing, Camera* camera) {
+		this->typeOfNode = SCENE_NODE;
+		parent = nullptr;
+		internal_name = "root_node";
 		currentWindow = windowUsing;
 		mainCamera = camera;
+		reGetWindowDimensions();
 	}
 	Scene(GLFWwindow* windowUsing, std::string sceneFileName);
 	void setMainCamera(Camera* camera);
+	
+	void addLight(Node* node);
+	void addModel(Node* node);
+
 	Camera* getMainCamera()
 	{
 		return mainCamera;
@@ -91,7 +185,7 @@ public:
 	void setGaussianBlurState(bool gsbState);
 	void moveAround(float deltaTime);
 	void lookAround();
-	void setupDeferredShading(int SCR_WIDTH, int SCR_HEIGHT);
+	void setupDeferredShading();
 	void clean(Shader& shader);
 
 	/*
@@ -107,73 +201,16 @@ public:
 	}
 	*/
 
-	void addToLightDraw(Node* lightNode)
-	{
-		this->lightDrawList.push_back(lightNode);
-	} 
-	void addToDraw(Node* NodeToAdd)
-	{
-		this->meshDrawList.push_back(NodeToAdd);
-	}
 
 	void drawCall(Shader& shader) {}
 	void draw(Shader& shader);
 	void drawFinal(Shader& shader, Shader& gaussianBlurShader, Shader& additiveMixingShader);
+	void ShadowsPass(Shader& shader);
 	void GeometryPass(Shader& shader);
 	void LightingPass(Shader& shader);
 	void reloadScene();
 };
 
-class MeshNode : public Node {
-public:
-	MeshNode(Node* parentIN);
-	MeshNode(Node* parentIN,Mesh* mesh);
-
-	void drawCall(Shader& shader);
-};
-
-class EmptyNode : public Node {
-public:
-
-	EmptyNode(Node* parentIN);
-
-	void drawCall(Shader& shader);
-};
-
-class ModelNode : public Node {
-private:
-public:
-	
-	ModelNode(Node* parentIN, Model* model);
-	void drawCall(Shader& shader);
-	void cleanupCall(Shader& shader);
-};
-
-class LightNode : public Node {
-public:
-	LightNode(Node* parentIN, Light* light);
-
-	void drawCall(Shader& shader);
-};
-
-class DirLightNode : public Node {
-public:
-	DirLightNode(Node* parentIN, DirectionalLight* dirLight);
-	void cleanupCall(Shader& shader);
-	void drawCall(Shader& shader);
-};
-
-class SpotLightNode : public Node {
-public:
-	SpotLightNode(Node* parentIN, Spotlight* spotLight);
-	void drawCall(Shader& shader);
-
-};
-
-class PointLightNode : public Node {
-public:
-	PointLightNode(Node* parentIN, PointLight* pointLight);
-	void drawCall(Shader& shader);
-};
-
 void doJobOnAllNodesBelow(Node* root);
+
+Scene* getRootScene(Node* node);

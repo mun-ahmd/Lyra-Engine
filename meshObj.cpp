@@ -246,6 +246,48 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
+int Mesh::getL3D_size()
+{
+    int totalSizeOfMesh = sizeof(this->vertices) + sizeof(this->indices);
+    for (int i = 0; i < textures.size(); ++i)
+    {
+        textures[i].filePath.shrink_to_fit();
+        totalSizeOfMesh += sizeof(textures[i].filePath);
+    }
+    return totalSizeOfMesh;
+}
+
+void Mesh::writeToL3D(std::ofstream& file)
+{
+    //Expect that file will be opened as binary
+
+
+    int verticesSize = this->vertices.size() * sizeof(Vertex) ;
+    int indicesSize = this->indices.size() * sizeof(unsigned int);
+    int texturesSize = 0;
+    for (int i = 0; i < this->textures.size(); ++i)
+    {
+        texturesSize += sizeof(textures[i].filePath);
+    }
+
+    file.write((char*)&verticesSize, sizeof(int));
+    file.write((char*)&indicesSize, sizeof(int));
+    file.write((char*)&texturesSize, sizeof(int));
+
+
+    file.write((char*)&this->vertices[0], verticesSize);
+    file.write((char*)&this->indices[0], indicesSize);
+
+    //TODO AFTER CREATING THE MATERIAL SYSTEM ADD THE MATERIAL NUMBER HERE AND REMOVE THE CURRENT THING WITH TEXTURES AND SHININESS
+
+    for (int i = 0; i < this->textures.size(); ++i)
+    {
+        const char* texPath = textures[i].filePath.c_str();
+        file.write((char*)texPath, sizeof(*texPath));
+    }
+
+    file.write((char*)&this->shininess, sizeof(int));
+}
 
 
 
@@ -305,11 +347,25 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 {
     this->vertices = vertices;
     this->indices = indices;
-    this->textures = textures;  //using arrow operator, because this data is going to a vector 
+    this->textures = textures;  
     this->shininess = shininess+0.001;
     setupMesh();
     //vertices.clear();
     //vertices.shrink_to_fit();
+}
+
+Mesh::Mesh()
+{
+    shininess = 0.0f;
+    material_index = 0;
+}
+Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, unsigned int materialIndex)
+{
+    this->vertices = vertices;
+    this->indices = indices;
+    this->textures = textures;
+    setupMesh();
+    this->material_index = materialIndex;
 }
 
 void Mesh::cleanup(Shader& shader) {
@@ -337,11 +393,22 @@ void Model::drawDeferredFirstPass(Shader& shader)
     }
 }
 
-void Model::fastLoadModel(std::string path) 
+void Model::loadModel_L3D(std::string path)
 {
-    std::ifstream modelLyraFile;
-    modelLyraFile.open(path, std::ios::in);
-
+    std::ifstream file;
+    file.open(path, std::ios::binary | std::ios::in);
+    char signature[2];
+    file.read(&signature[0], 2);
+    if (signature != "LY")
+    {
+        //TODO error
+    }
+    int no_of_meshes;
+    file.read((char*)&no_of_meshes, sizeof(int));
+    for (int i = 0; i < no_of_meshes; ++i)
+    {
+        Mesh newMesh = Mesh()
+    }
 }
 
 void Model::loadModel(std::string path)
@@ -523,6 +590,32 @@ void Model::storeToFastLoad() {
     {
         meshToLyraStore(Model::meshes[i], &fastLoadFile);
     }
+}
+
+
+void Model::storeModelToL3D(std::string filePath)
+{
+    std::ofstream file;
+    file.open(filePath, std::ios::binary | std::ios::out);
+
+    const char signature[2] = {'L','Y'};
+    file.write(&signature[0], 2);
+
+    int no_of_meshes = this->meshes.size();
+    file.write((char*)&no_of_meshes, sizeof(int));
+
+    for (int i = 0; i < this->meshes.size(); ++i)
+    {
+        int meshSize = this->meshes[i].getL3D_size();
+        file.write((char*)&meshSize, sizeof(int));
+    }
+
+    for (int i = 0; i < this->meshes.size(); ++i)
+    {
+        this->meshes[i].writeToL3D(file);
+    }
+
+    file.close();
 }
 
 

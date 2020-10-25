@@ -8,15 +8,112 @@
 
 using namespace std;
 
+
+
+
+struct NodeTypeCaster
+{
+	Node* node;
+
+	NodeTypeCaster(Node* nodeIN)
+	{
+		node = nodeIN;
+	}
+	operator ModelNode*()
+	{
+		if (node->getNodeType() != MODEL_NODE)
+		{
+			std::cout << "WRONG CONVERSION ATTEMPTED THE NODE: " << node->name << " IS NOT A MODEL NODE! NULLPTR RETURNED";
+			return nullptr;
+		}
+
+		return (static_cast<ModelNode*>(node));
+	}
+
+	operator DirLightNode* ()
+	{
+		if (node->getNodeType() != DIR_LIGHT_NODE)
+		{
+			std::cout << "WRONG CONVERSION ATTEMPTED THE NODE: " << node->name << " IS NOT A DIRLIGHT NODE! NULLPTR RETURNED";
+			return nullptr;
+		}
+
+		return (static_cast<DirLightNode*>(node));
+	}
+
+	operator PointLightNode* ()
+	{
+		if (node->getNodeType() != POINT_LIGHT_NODE)
+		{
+			std::cout << "WRONG CONVERSION ATTEMPTED THE NODE: " << node->name << " IS NOT A POINT LIGHT NODE! NULLPTR RETURNED";
+			return nullptr;
+		}
+
+		return (static_cast<PointLightNode*>(node));
+	}
+
+	operator SpotLightNode* ()
+	{
+		if (node->getNodeType() != SPOT_LIGHT_NODE)
+		{
+			std::cout << "WRONG CONVERSION ATTEMPTED THE NODE: " << node->name << " IS NOT A SPOTLIGHT NODE! NULLPTR RETURNED";
+			return nullptr;
+		}
+
+		return (static_cast<SpotLightNode*>(node));
+	}
+
+	operator Scene* ()
+	{
+		if (node->getNodeType() != SCENE_NODE)
+			//can also check if the parent is a nullptr
+		{
+			std::cout << "WRONG CONVERSION ATTEMPTED THE NODE: " << node->name << " IS NOT A SCENE NODE! NULLPTR RETURNED";
+			return nullptr;
+		}
+
+		return (static_cast<Scene*>(node));
+	}
+};
+
+
+Transform::Transform()
+{
+	translation = glm::vec3(0);
+	rotation = glm::vec4(0);
+	scaleSize = glm::vec3(0);
+}
+
+glm::mat4 Transform::getModelMatrix()
+{
+	glm::mat4 model = glm::mat4(1);
+	model = glm::translate(model, this->translation);
+	model = glm::scale(model, this->scaleSize);
+	model = glm::rotate(model, this->rotation.w, glm::vec3(this->rotation));
+	return model;
+}
+
+
+Scene* getRootScene(Node* node)
+{
+	return (Scene*)NodeTypeCaster(node->getRootParent());
+}
+
+
+
+
+
+
+
 int copiesCount = 0;
 
 void printNodeIdentity(Node* node) {
-	cout << node->identify << " <--";
+	cout << node->internal_name << " <--";
 }
 
 void doJobOnAllNodesBelow(Node* root)
 {
-	if (root == NULL)
+	if (root == nullptr)
 		return;
 
 	// Standard level order traversal code 
@@ -33,7 +130,7 @@ void doJobOnAllNodesBelow(Node* root)
 			//So it goes from the top and leaves nothing left
 			// Dequeue a node, tell it to do its job and add its children to the queue
 			Node* p = q.front();
-			std::cout << p->identify;
+			std::cout << p->internal_name;
 			for (int i = 0; i < p->getChildren().size(); i++)
 				q.push(p->getChildren()[i]);
 			q.pop();
@@ -53,89 +150,65 @@ void doJobOnAllNodesBelow(Node* root)
 
 Node::Node() 
 {
-}
-Node::Node(Node* parentIn, string identifyIN) {
-	parent = parentIn;
-	identify = identifyIN;
-	parentIn->children.push_back(this);
+	//this class is a template
 }
 
-Node* Node::copyNode(Node* dest)
+Node::~Node()
 {
-	if (this->parent == NULL)
+	if (this->parent != nullptr)
 	{
-		std::cout << "YOU CANNOT COPY A SCENE";
-		return NULL;
+		this->parent->removeChild(this);
 	}
-	if (this == NULL)
-		return NULL;
-
-	bool isNodeToReturn = true;
-
-	// Standard level order traversal code 
-	// using queue 
-	queue<Node*> q;  // Create a queue 
-	q.push(this); // Enqueue root  
-	while (!q.empty())
+	for (int i = 0; i < this->children.size(); ++i)
 	{
-		int n = q.size();
-
-		// If this node has children
-		while (n > 0)
-		{
-			//So it goes from the top and leaves nothing left
-			// Dequeue a node, tell it to do its job and add its children to the queue
-			Node* p = q.front();
-			Node* currParent = p;
-			//giving values
-			currParent->identify = p->identify + std::to_string(p->copiesCount);
-			currParent->model = p->model;currParent->modelScale = p->modelScale;
-			currParent->objectContained = p->objectContained;
-			addToDraw(currParent);
-			if (isNodeToReturn)
-			{
-				currParent->parent = this->parent;
-				currParent->parent->addChildren(currParent);
-				dest = currParent;
-				isNodeToReturn = false;
-			}
-
-			for (int i = 0; i < p->getChildren().size(); i++)
-			{
-				Node* currNodeToAdd = p->getChildren()[i];
-				q.push(currNodeToAdd);
-				Node* newNode = currNodeToAdd;
-				newNode->identify = currNodeToAdd->identify + std::to_string(currNodeToAdd->copiesCount);
-				newNode->model = currNodeToAdd->model; newNode->modelScale = currNodeToAdd->modelScale;
-				newNode->objectContained = currNodeToAdd->objectContained;
-				newNode->parent = currParent;
-				currParent->addChildren(newNode);
-
-			}
-			q.pop();
-
-
-			n--;
-		}
-
+		this->children[i]->~Node();
 	}
-
-	return dest;
+	//return
 }
 
-void Node::addChildren(Node* childrenIN) {
-	if(childrenIN->parent != NULL)
-		childrenIN->parent->removeChild(childrenIN);
-	childrenIN->parent = this;
-	Node::children.push_back(childrenIN);
+
+void Node::changeParent_only(Node* newParentNode)
+{
+	this->parent = newParentNode;
+}
+
+void Node::addChildren(Node* nodeToAdd)
+{
+	this->children.push_back(nodeToAdd);
+	nodeToAdd->changeParent_only(this);
+}
+
+void Node::addChildren(Node* childrenNodes, int number_of_children)
+{
+	for (int i = 0; i < number_of_children; ++i)
+	{
+		this->children.push_back(childrenNodes + i);
+		(childrenNodes + i)->changeParent_only(this);
+	}
+}
+
+void Node::addChildren(std::vector<Node*> childrenNodes)
+{
+	for (int i = 0; i < children.size(); ++i)
+	{
+		this->children.push_back(childrenNodes[i]);
+		childrenNodes[i]->changeParent_only(this);
+	}
 }
 
 void Node::removeChild(Node* child) {
-	this->children.erase(std::find(this->children.begin(), this->children.end(), child));
+	for (int i = 0; i < this->children.size(); ++i)
+	{
+		if (this->children[i] == child)
+		{
+			this->children.erase(this->children.begin() + i);
+			return;
+		}
+	}
 }
 
 void Node::printDirectory() {
-	this->getRootParent(printNodeIdentity);
+	this->doInParentPath(printNodeIdentity);
 	cout << endl;
 }
 
@@ -143,129 +216,31 @@ std::vector<Node*> Node::getChildren() {
 	return this->children;
 }
 
-Node* Node::getRootParent(void func(Node*)) {
+void Node::doInParentPath(void func(Node*)) {
 	Node* currentNode = this;
-	while (currentNode->parent != NULL) {
+	while (currentNode->parent != nullptr) {
 		func(currentNode);
 		currentNode = currentNode->parent;
 	}
-	return currentNode;
 }
 
-Node* Node::getRootParent(){
+Node* Node::getRootParent()
+{
 	Node* currentNode = this;
-	while (currentNode->parent != NULL) {
+	while (currentNode->parent != nullptr) {
 		currentNode = currentNode->parent;
 	}
 	return currentNode;
 }
 
-void Node::drawGroup(Shader& shader) {
-	if (this == NULL)
-		return;
 
-// Standard level order traversal code 
-// using queue 
-	queue<Node*> q;  // Create a queue 
-	q.push(this); // Enqueue root  
-	while (!q.empty())
-	{
-		int n = q.size();
-
-		// If this node has children 
-		while (n > 0)
-		{
-			//So it goes from the top and leaves nothing left
-			// Dequeue a node, tell it to do its job and add its children to the queue
-			Node* p = q.front();
-			p->drawCall(shader);
-			for (int i = 0; i < p->getChildren().size(); i++)
-				q.push(p->getChildren()[i]);
-			q.pop();
-
-
-			n--;
-		}
-
-	}
-}
-
-void Node::propagateTranslationToChildren(glm::vec3 translation)
+NODE_TYPE Node::getNodeType()
 {
-
+	return this->typeOfNode;
 }
 
-//all model matrix manipulation functions below
-
-void Node::translate(glm::vec3 displacement)
-{
-	if (this == NULL)
-		return;
-
-	// Standard level order traversal code 
-	// using queue 
-	queue<Node*> q;  // Create a queue 
-	q.push(this); // Enqueue root  
-	while (!q.empty())
-	{
-		int n = q.size();
-
-		// If this node has children 
-		while (n > 0)
-		{
-			//So it goes from the top and leaves nothing left
-			// tell node to do its job and add its children to the queue then dequeue it.
-			Node* p = q.front();
-			p->model = glm::translate(p->model, displacement);
-			for (int i = 0; i < p->getChildren().size(); i++)
-				q.push(p->getChildren()[i]);
-			q.pop();
-
-
-			n--;
-		}
-
-	}
-}
-void Node::rotate(float radians, glm::vec3 axis) 
-{
-	model = glm::rotate(model, radians, axis);
-}
-void Node::rotateDegrees(float degrees, glm::vec3 axis)
-{
-	model = glm::rotate(model, glm::radians(degrees), axis);
-}
-void Node::scale(float scaleFactor)
-{
-	modelScale += glm::vec3(scaleFactor);
-}
-void Node::scale(glm::vec3 scale)
-{
-	modelScale += scale;
-}
-void Node::scale(float scaleX, float scaleY, float scaleZ)
-{
-	modelScale += glm::vec3(scaleX, scaleY, scaleZ);
-}
-void Node::setPosition(glm::vec3 newPosition)
-{
-	model = glm::translate(glm::mat4(1), newPosition);
-}
-void Node::setRotation(float newRot_inRadians, glm::vec3 axis)
-{
-	model = glm::rotate(glm::mat4(1), newRot_inRadians, axis);
-}
-void Node::setRotationDegrees(float newRot_inDegrees, glm::vec3 axis)
-{
-	model = glm::rotate(glm::mat4(1), glm::radians(newRot_inDegrees), axis);
-}
-void Node::setScale(float newScale)
-{
-	modelScale = glm::vec3(newScale);
-}
 
 //End of memeber functions of Node obj
-
 
 
 //Node types' definitions
@@ -276,74 +251,30 @@ int LightCount = 0;
 
 
 
-MeshNode::MeshNode(Node* parentIN) {
-	MeshNode::identify = "Mesh" + std::to_string(meshCount);
-	++meshCount;
-	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToDraw(this);
-}
 
-MeshNode::MeshNode(Node* parentIN, Mesh* mesh) {
-	MeshNode::objectContained = ((Mesh*)mesh);
-	MeshNode::identify = "Mesh" + std::to_string(meshCount);
-	++meshCount;
-	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToDraw(this);
-}
-
-void MeshNode::drawCall(Shader& shader) {
-	shader.addUniformMat4("model", &model);
-	((Mesh*)objectContained)->draw(shader);
-}
-
-
-EmptyNode::EmptyNode(Node* parentIN) {
-	EmptyNode::identify = "Empty" + std::to_string(emptyCount);
-	++emptyCount;
-	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToDraw(this);
-}
-
-
-void EmptyNode::drawCall(Shader& shader) {
-	return;
-}
-
-
-ModelNode::ModelNode(Node* parentIN,Model* model) 
+ModelNode::ModelNode(Node* parentIN,Model* model_in) 
 {
-	objectContained = (model);
-	ModelNode::identify = "Model" + std::to_string(ModelCount);
+	this->typeOfNode = MODEL_NODE;
+	model = model_in;
+	ModelNode::internal_name = "Model" + std::to_string(ModelCount);
 	++ModelCount;
 	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToDraw(this);
+	getRootScene(parentIN)->addModel(this);
 };
 
 void ModelNode::cleanupCall(Shader& shader)
 {
-	((Model*)objectContained)->Cleanup(shader);
-	delete(((Model*)objectContained));
+	((Model*)model)->Cleanup(shader);
+	delete(((Model*)model));
 }
 
 void ModelNode::drawCall(Shader& shader) 
 {
-	shader.addUniformMat4("model", &model);
-	((Model*)objectContained)->Draw(shader);
+	shader.addUniformMat4("model", &this->transform.getModelMatrix());
+	((Model*)model)->Draw(shader);
 }
 
-LightNode::LightNode(Node* parentIN, Light* light) 
-{
-	objectContained = ((Light*)light);
-	LightNode::identify = "Light" + std::to_string(LightCount);
-	++LightCount;
-	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToLightDraw(this);
-}
 
-void LightNode::drawCall(Shader& shader) 
-{
-	((Light*)objectContained)->addToShader(shader, "dirLight");
-}
 
 
 void splitStringOnce(std::string& stringToSplit, std::string& secondPart, char delimiter)
@@ -372,18 +303,19 @@ void splitStringOnce(std::string& stringToSplit, std::string& secondPart, char d
 	stringToSplit = partOne;
 }
 int dirLightCount = 0;
-DirLightNode::DirLightNode(Node* parentIN, DirectionalLight* dirLight)
+DirLightNode::DirLightNode(Node* parentIN, DirectionalLight* dirLightIN)
 {
-	objectContained = ((DirectionalLight*)dirLight);
-	DirLightNode::identify = "dirLight" + std::to_string(dirLightCount);
+	this->typeOfNode = DIR_LIGHT_NODE;
+	this->dirLight = ((DirectionalLight*)dirLightIN);
+	DirLightNode::internal_name = "dirLight" + std::to_string(dirLightCount);
 	++dirLightCount;
 	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToLightDraw(this);
+	getRootScene(parentIN)->addLight(this);
 }
 
 void DirLightNode::cleanupCall(Shader& shader)
 {
-	delete(((DirectionalLight*)objectContained));
+	delete(((DirectionalLight*)dirLight));
 }
 
 void DirLightNode::drawCall(Shader& shader)
@@ -391,34 +323,46 @@ void DirLightNode::drawCall(Shader& shader)
 	//CONVENTION!
 	//now, directional light will be named as dirLight0, dirLight1, etc... 
 	//multiple such uniforms will be present in the shader
-	((DirectionalLight*)objectContained)->addToShader(shader, identify);
+	((DirectionalLight*)dirLight)->addToShader(shader, internal_name);
+}
+
+void DirLightNode::setupShadows()
+{
+	((DirectionalLight*)dirLight)->setupShadowGeneration();
+}
+
+void DirLightNode::shadowDrawCall(Shader& shader, unsigned int squareVAO)
+{
+	((DirectionalLight*)dirLight)->generateShadow(shader, squareVAO);
 }
 
 int spotLightCount = 0;
-SpotLightNode::SpotLightNode(Node* parentIN, Spotlight* spotLight)
+SpotLightNode::SpotLightNode(Node* parentIN, Spotlight* spotLightIN)
 {
-	objectContained = ((Spotlight*)spotLight);
-	SpotLightNode::identify = "spotLight" + std::to_string(spotLightCount);
+	this->typeOfNode = SPOT_LIGHT_NODE;
+	spotlight = ((Spotlight*)spotLightIN);
+	SpotLightNode::internal_name = "spotLight" + std::to_string(spotLightCount);
 	++spotLightCount;
 	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToLightDraw(this);
+	getRootScene(parentIN)->addLight(this);
 }
 void SpotLightNode::drawCall(Shader& shader)
 {
 	//CONVENTION!
 	//now, spotlights will be named as spotLight0, spotLight1, etc... 
 	//multiple such uniforms will be present in the shader
-	((Spotlight*)objectContained)->addToShader(shader, identify);
+	((Spotlight*)spotlight)->addToShader(shader, internal_name);
 }
 
 int pointLightCount = 0;
 PointLightNode::PointLightNode(Node* parentIN, PointLight* pointLight)
 {
-	objectContained = ((PointLight*)pointLight);
-	PointLightNode::identify = "pointLight" + std::to_string(pointLightCount);
+	this->typeOfNode = POINT_LIGHT_NODE;
+	pointLight = ((PointLight*)pointLight);
+	PointLightNode::internal_name = "pointLight" + std::to_string(pointLightCount);
 	++pointLightCount;
 	parentIN->addChildren(this);
-	parentIN->getRootParent()->addToLightDraw(this);
+	getRootScene(parentIN)->addLight(this);
 }
 
 void PointLightNode::drawCall(Shader& shader)
@@ -426,7 +370,7 @@ void PointLightNode::drawCall(Shader& shader)
 	//CONVENTION!
 	//now, spotlights will be named as spotLight0, spotLight1, etc... 
 	//multiple such uniforms will be present in the shader
-	((PointLight*)objectContained)->addToShader(shader, identify);
+	((PointLight*)pointLight)->addToShader(shader, internal_name);
 }
 
 
@@ -532,12 +476,54 @@ Camera* createCameraForScene
 	return camToReturn;
 }
 
+
+SCENE_LIGHTS::SCENE_LIGHTS(std::vector<SpotLightNode*> sptLtIN, std::vector<PointLightNode*> ptLtIN, std::vector<DirLightNode*> dirLts)
+{
+	this->spotLightNodes = sptLtIN;
+	this->pointLightNodes = ptLtIN;
+	this->dirLightNodes = dirLts;
+}
+
+void Scene::addLight(Node* node)
+{
+	NODE_TYPE type = node->getNodeType();
+	if (type == DIR_LIGHT_NODE)
+	{
+		this->lights.dirLightNodes.push_back(NodeTypeCaster(node));
+	}
+	else if (type == SPOT_LIGHT_NODE)
+	{
+		this->lights.spotLightNodes.push_back(NodeTypeCaster(node));
+	}
+	else if (type == POINT_LIGHT_NODE)
+	{
+		this->lights.pointLightNodes.push_back(NodeTypeCaster(node));
+	}
+	else
+	{
+		std::cout << "NON LIGHT NODE WAS ATTEMPTED TO BE PUT IN SCENE_LIGHTS :: IGNORED\n";
+	}
+}
+
+void Scene::addModel(Node* node)
+{
+	if (node->getNodeType() == MODEL_NODE)
+	{
+		this->models.modelNodes.push_back(NodeTypeCaster(node));
+	}
+	else
+	{
+		std::cout << "NON MODEL NODE WAS ATTEMPTED TO BE PUT IN SCENE_MODELS :: IGNORED\n";
+	}
+}
+
 Scene::Scene(GLFWwindow* windowUsing, std::string sceneFilename)
 {
+	this->typeOfNode = SCENE_NODE;
 	std::ifstream sceneFile;
 	std::vector<std::vector<std::string>> sceneElements;
 	this->parent = NULL;
-	this->identify = "root_node";
+	this->internal_name = "root_node";
 	this->currentWindow = windowUsing;
 
 
@@ -594,6 +580,8 @@ Scene::Scene(GLFWwindow* windowUsing, std::string sceneFilename)
 		}
 		std::cout << "\n";
 	}
+	reGetWindowDimensions();
+
 }
 
 void Scene::reloadScene()
@@ -648,15 +636,25 @@ void Scene::setGaussianBlurState(bool gsbState)
 
 void Scene::clean(Shader& shader)
 {
-	for (int i = 0;i < meshDrawList.size();++i)
+	for (int i = 0;i < this->models.modelNodes.size();++i)
 	{
-		meshDrawList[i]->cleanupCall(shader);
-		delete(meshDrawList[i]);
+		this->models.modelNodes[i]->cleanupCall(shader);
+		delete(this->models.modelNodes[i]);
 	}
-	for (int i = 0;i < lightDrawList.size();++i)
+	for (int i = 0;i < this->lights.dirLightNodes.size();++i)
 	{
-		lightDrawList[i]->cleanupCall(shader);
-		delete(lightDrawList[i]);
+		this->lights.dirLightNodes[i]->cleanupCall(shader);
+		delete(this->lights.dirLightNodes[i]);
+	}
+	for (int i = 0;i < this->lights.spotLightNodes.size();++i)
+	{
+		this->lights.spotLightNodes[i]->cleanupCall(shader);
+		delete(this->lights.spotLightNodes[i]);
+	}
+	for (int i = 0;i < this->lights.pointLightNodes.size();++i)
+	{
+		this->lights.pointLightNodes[i]->cleanupCall(shader);
+		delete(this->lights.pointLightNodes[i]);
 	}
 	delete(this->mainCamera);
 }
@@ -664,20 +662,44 @@ bool firstDraw = true;
 void Scene::draw(Shader& shader) {
 	if (firstDraw)
 	{
-		model = glm::scale(model, modelScale);
+		//model = glm::scale(model, modelScale);
 		firstDraw = false;
 	}
 	glUseProgram(shader.program);
 	shader.addUniformVec3("viewPos", mainCamera->position);
 	shader.addUniformMat4("view", &mainCamera->getViewMatrix());
-	for (int light = 0;light<lightDrawList.size();++light) 
+	for (int light = 0;light<lights.dirLightNodes.size();++light) 
 	{
-		lightDrawList[light]->drawCall(shader);
+		lights.dirLightNodes[light]->drawCall(shader);
 	}
-	for (int obj = 0;obj<meshDrawList.size();++obj)
+	for (int obj = 0;obj<models.modelNodes.size();++obj)
 	{
-		meshDrawList[obj]->drawCall(shader);
+		models.modelNodes[obj]->drawCall(shader);
 	}
+}
+
+void DirLightNode::shadowSetupCall()
+{
+	((DirectionalLight*)dirLight)->setupShadowGeneration();
+}
+bool firstShadow = true;
+void Scene::ShadowsPass(Shader& shader)
+{
+	if (firstShadow)
+	{
+		for (int i = 0; i < this->lights.dirLightNodes.size(); ++i)
+		{
+			this->lights.dirLightNodes[i]->shadowSetupCall();
+		}
+		firstShadow = false;
+	}
+	for (int i = 0; i < this->lights.dirLightNodes.size(); ++i)
+	{
+		this->lights.dirLightNodes[i]->shadowDrawCall(shader, this->squareVAO);
+		this->draw(shader);
+	}
+
+	glViewport(0, 0, this->SCR_WIDTH, this->SCR_HEIGHT);
 }
 
 bool firstieDraw = true;
@@ -687,19 +709,18 @@ void Scene::GeometryPass(Shader& shader)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if (firstieDraw)
 	{
-		model = glm::scale(model, modelScale);
 		firstieDraw = false;
 	}
 	glUseProgram(shader.program);
 	shader.addUniformMat4("view", &mainCamera->getViewMatrix());
-	for (int obj = 0;obj < meshDrawList.size();++obj)
+	for (int obj = 0;obj < this->models.modelNodes.size();++obj)
 	{
-		meshDrawList[obj]->drawCall(shader);
+		this->models.modelNodes[obj]->drawCall(shader);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Scene::setupDeferredShading(int SCR_WIDTH, int SCR_HEIGHT)
+void Scene::setupDeferredShading()
 {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -712,28 +733,28 @@ void Scene::setupDeferredShading(int SCR_WIDTH, int SCR_HEIGHT)
 	// position color buffer
 	glGenTextures(1, &gPosition);
 	glBindTexture(GL_TEXTURE_2D, gPosition);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
 	// normal color buffer
 	glGenTextures(1, &gNormal);
 	glBindTexture(GL_TEXTURE_2D, gNormal);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
 	// color + specular color buffer
 	glGenTextures(1, &gAlbedoSpec);
 	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
 
 	glGenTextures(1, &gAlbedoSpec);
 	glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
@@ -745,7 +766,7 @@ void Scene::setupDeferredShading(int SCR_WIDTH, int SCR_HEIGHT)
 	unsigned int rboDepth;
 	glGenRenderbuffers(1, &rboDepth);
 	glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, this->SCR_WIDTH, this->SCR_HEIGHT);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
 	// finally check if framebuffer is complete
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -759,14 +780,14 @@ void Scene::setupDeferredShading(int SCR_WIDTH, int SCR_HEIGHT)
 
 	glGenTextures(1, &colorTexture);
 	glBindTexture(GL_TEXTURE_2D, colorTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
 
 	glGenTextures(1, &brightTexture);
 	glBindTexture(GL_TEXTURE_2D, brightTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, brightTexture, 0);
@@ -825,9 +846,9 @@ void Scene::LightingPass(Shader& shader)
 
 	shader.addUniformVec3("viewPos", this->mainCamera->position);
 
-	for (int lightIndex = 0; lightIndex < lightDrawList.size();++lightIndex)
+	for (int lightIndex = 0; lightIndex < lights.dirLightNodes.size();++lightIndex)
 	{
-		lightDrawList[lightIndex]->drawCall(shader);
+		lights.dirLightNodes[lightIndex]->drawCall(shader);
 	}
 
 	glBindVertexArray(squareVAO);
@@ -891,10 +912,6 @@ void Scene::drawFinal(Shader& shader, Shader& gaussianBlurShader, Shader& additi
 
 		if (firstGaussianBlur)
 		{
-			int SCR_WIDTH, SCR_HEIGHT;
-			glfwGetWindowSize(currentWindow, &SCR_WIDTH, &SCR_HEIGHT);
-			SCR_WIDTH = 1920; SCR_HEIGHT = 1080;
-
 			glGenFramebuffers(2, pingpongFBO);
 			glGenTextures(2, pingpongBuffer);
 
@@ -903,7 +920,7 @@ void Scene::drawFinal(Shader& shader, Shader& gaussianBlurShader, Shader& additi
 				glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
 				glBindTexture(GL_TEXTURE_2D, pingpongBuffer[i]);
 				glTexImage2D(
-					GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL
+					GL_TEXTURE_2D, 0, GL_RGBA16F, this->SCR_WIDTH, this->SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL
 				);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

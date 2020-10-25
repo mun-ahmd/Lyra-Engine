@@ -13,10 +13,10 @@ const float dirLightPosDistFactor = 10;
 
 char* appendExtentionToName(std::string name, std::string extention) {
 	std::string nameWithExtentionStr = name + '.' + extention;
-	const int n = nameWithExtentionStr.size();
-	char* nameExt = new char[n + 1];
+	const int n = nameWithExtentionStr.size() + 1;
+	char* nameExt = new char[n];
 
-	nameWithExtentionStr.copy(nameExt, n + 1);
+	nameWithExtentionStr.copy(nameExt, n);
 	nameExt[nameWithExtentionStr.size()] = '\0';
 	return nameExt;
 }
@@ -29,7 +29,8 @@ Light::Light(glm::vec3 lightPos, glm::vec3 lightColor, float ambVal, float diffV
 	specular = glm::vec3(specVal);
 }
 
-DirectionalLight::DirectionalLight(glm::vec3 lightDirection, glm::vec3 lightColor, float ambVal, float diffVal, float specVal) {
+DirectionalLight::DirectionalLight(glm::vec3 lightDirection, glm::vec3 lightColor, float ambVal, float diffVal, float specVal) 
+{
 	direction = lightDirection;
 	position = lightDirection * dirLightPosDistFactor;
 	color = lightColor;
@@ -37,7 +38,8 @@ DirectionalLight::DirectionalLight(glm::vec3 lightDirection, glm::vec3 lightColo
 	diffuse = glm::vec3(diffVal);
 	specular = glm::vec3(specVal);
 }
-DirectionalLight::DirectionalLight(glm::vec3 lightDirection, glm::vec3 lightColor) {
+DirectionalLight::DirectionalLight(glm::vec3 lightDirection, glm::vec3 lightColor) 
+{
 	direction = lightDirection;
 	position = lightDirection * dirLightPosDistFactor;
 	color = lightColor;
@@ -45,11 +47,94 @@ DirectionalLight::DirectionalLight(glm::vec3 lightDirection, glm::vec3 lightColo
 	diffuse = glm::vec3(diffValDefault);
 	specular = glm::vec3(specValDefault);
 }
+
+void DirectionalLight::setupShadowGeneration()
+{
+	this->shadowMapFBO = 0;
+	glCreateFramebuffers(1, &this->shadowMapFBO);
+
+
+	glGenTextures(1, &this->shadowMap);
+	glBindTexture(GL_TEXTURE_2D, this->shadowMap);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+		this->SHADOW_WIDTH, this->SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->shadowMap, 0);
+
+	/*
+	glGenTextures(1, &reflectiveShadowMap);
+	glBindTexture(GL_TEXTURE_2D, reflectiveShadowMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, reflectiveShadowMap, 0);
+	*/
+
+
+	//tell opengl that we don't want to read or write any color data from this framebuffer
+	//not using for reflective shadow map
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "Framebuffer not complete!" << std::endl;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	float near_plane = 1.0f, far_plane = 550.5;
+	glm::mat4 lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
+
+	glm::mat4 lightView = glm::lookAt(this->position,
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+
+	this->lightSpaceMatrix = lightProjection* lightView;
+}
+
+
+void DirectionalLight::generateShadow(Shader& shadowShader,unsigned int squareVAO)
+{
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glCullFace(GL_FRONT);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowMapFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(shadowShader.program);
+
+	glm::mat4 model = glm::mat4(1);
+	model = glm::translate(model, this->position);
+	shadowShader.addUniformMat4("model", &model);
+	shadowShader.addUniformMat4("lightSpaceMatrix", &this->lightSpaceMatrix);
+
+
+}
+
 void DirectionalLight::addToShader(Shader& shader, std::string nameInUniform) 
 {
 	glUseProgram(shader.program);
 	shader.addUniformVec3(appendExtentionToName(nameInUniform, "color"), color);
-	shader.addUniformVec3(appendExtentionToName(nameInUniform, "direction"), direction.x, direction.y, direction.z);
+	shader.addUniformVec3(appendExtentionToName(
+								nameInUniform, "direction"), direction.x, direction.y, direction.z
+																								);
+	shader.addUniformMat4(appendExtentionToName(nameInUniform, "lightSpaceMatrix"), &this->lightSpaceMatrix);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D,this->shadowMap);
+	shader.addUniform1I(appendExtentionToName(nameInUniform, "shadowMap"), 4);
+	glBindTexture(GL_TEXTURE_2D,0);
+	glActiveTexture(GL_TEXTURE0);
+
+
 }
 
 PointLight::PointLight(glm::vec3 lightPos, glm::vec3 lightColor, float ambVal, float diffVal, float specVal, float attenConstant, float attenLinear, float attenQuadratic) {

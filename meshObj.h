@@ -37,11 +37,21 @@ public:
     std::vector<unsigned int> indices;
     std::vector<Texture>      textures;
     float shininess;
-
+    unsigned int material_index = 0;
+     
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, float shininess = 32.0f);
+    Mesh();
+    Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, unsigned int materialIndex);
 
     void draw(Shader& shader);
     void drawGeometryPass(Shader& shader);
+
+
+    int getL3D_size();
+    void writeToL3D(std::ofstream& file);
+    //TODO
+    void readFromL3D(std::ofstream& file);
+
 
     void cleanup(Shader& shader);
 protected:
@@ -57,9 +67,14 @@ protected:
 class Model
 {
 public:
-    Model(std::string pathStr)
+    Model() = default;
+    Model(std::string pathStr, bool importer)
     {
         loadModel(pathStr);
+    }
+    Model(std::string pathStr)
+    {
+        loadModel_L3D(pathStr);
     }
     void Draw(Shader& shader);
     void drawDeferredFirstPass(Shader& shader);
@@ -69,12 +84,15 @@ public:
     bool modelLoaded = false;
     void storeToFastLoad();
 
+    void storeModelToL3D(std::string filePath);
+
+
 private:
     // model data
     std::vector<Mesh> meshes;
     std::vector<Texture> textures_loaded; //to contain all textures already loaded
     void loadModel(std::string path);
-    void fastLoadModel(std::string path);   //ALOT of work left on this
+    void loadModel_L3D(std::string path);
 
     void processNode(aiNode* node, const aiScene* scene);
     Mesh processMesh(aiMesh* mesh, const aiScene* scene);

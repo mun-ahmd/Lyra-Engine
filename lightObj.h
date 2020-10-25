@@ -26,12 +26,23 @@ public:
 
 class DirectionalLight: public Light
 {
+private:
+	unsigned int shadowMapFBO;
+	unsigned int shadowMap;
+	int SHADOW_WIDTH = 1080, SHADOW_HEIGHT = 1080;
+	glm::mat4 lightSpaceMatrix;
+	bool shadowsON = false;
+
 public:
 	glm::vec3 direction;
 
 	DirectionalLight(glm::vec3 lightDir, glm::vec3 lightColor, float ambVal, float diffVal, float specVal);
 	DirectionalLight(glm::vec3 lightDir, glm::vec3 lightColor);
 	void addToShader(Shader& shader, std::string nameInUniform);
+	void setupShadowGeneration();
+	void generateShadow(Shader& shadowShader, unsigned int squareVAO);
+
+
 };
 
 class PointLight: public Light
