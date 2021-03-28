@@ -1,14 +1,32 @@
 ﻿  ManyFunctions.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Material_Manager.h(19,1): warning C4267: 'return': conversion from 'size_t' to 'unsigned int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.h(69,14): warning C4834: discarding return value of function with 'nodiscard' attribute
 C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(558,29): warning C4018: '<': signed/unsigned mismatch
 C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1049,37): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1054,37): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1105,34): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
 C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(794,82): warning C4101: 'mirrorProjection': unreferenced local variable
-C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1326,34): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
-C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1245,44): warning C4101: 'view': unreferenced local variable
-  MaterialObj.cpp
-  Material_Manager.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1317,33): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\ManyFunctions.cpp(1246,44): warning C4101: 'view': unreferenced local variable
   Project.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Material_Manager.h(19,1): warning C4267: 'return': conversion from 'size_t' to 'unsigned int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.h(69,14): warning C4834: discarding return value of function with 'nodiscard' attribute
 C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Project.cpp(17,51): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Scene.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Material_Manager.h(19,1): warning C4267: 'return': conversion from 'size_t' to 'unsigned int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.h(69,14): warning C4834: discarding return value of function with 'nodiscard' attribute
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(121,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(297,40): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(302,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(307,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(313,40): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(318,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(323,58): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(549,46): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Scene.cpp(549,37): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+  main.cpp
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\Material_Manager.h(19,1): warning C4267: 'return': conversion from 'size_t' to 'unsigned int', possible loss of data
+C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\meshObj.h(69,14): warning C4834: discarding return value of function with 'nodiscard' attribute
   Generating Code...
-  Lyra Engine.vcxproj -> C:\Users\munee\source\repos\Lyra Engine\x64\Debug\Lyra Engine.exe
+ManyFunctions.obj : error LNK2019: unresolved external symbol "public: void __cdecl Scene::GeometryPass(class Shader &)" (?GeometryPass@Scene@@QEAAXAEAVShader@@@Z) referenced in function "void __cdecl imageRender(struct GLFWwindow *)" (?imageRender@@YAXPEAUGLFWwindow@@@Z)
+C:\Users\munee\source\repos\Lyra Engine\x64\Debug\Lyra Engine.exe : fatal error LNK1120: 1 unresolved externals

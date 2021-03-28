@@ -10,7 +10,6 @@ using namespace std;
 
 
 
-
 struct NodeTypeCaster
 {
 	Node* node;
@@ -107,9 +106,6 @@ Scene* getRootScene(Node* node)
 
 int copiesCount = 0;
 
-void printNodeIdentity(Node* node) {
-	cout << node->internal_name << " <--";
-}
 
 void doJobOnAllNodesBelow(Node* root)
 {
@@ -146,101 +142,6 @@ void doJobOnAllNodesBelow(Node* root)
 //Brute forcing for example takes 0.0035638s(avg) and requires hardcoding for different depths.
 //0.0024476s-0.004s is time taken by this queue method.
 
-//start of member functions of Node obj
-
-Node::Node() 
-{
-	//this class is a template
-}
-
-Node::~Node()
-{
-	if (this->parent != nullptr)
-	{
-		this->parent->removeChild(this);
-	}
-	for (int i = 0; i < this->children.size(); ++i)
-	{
-		this->children[i]->~Node();
-	}
-	//return
-}
-
-
-void Node::changeParent_only(Node* newParentNode)
-{
-	this->parent = newParentNode;
-}
-
-void Node::addChildren(Node* nodeToAdd)
-{
-	this->children.push_back(nodeToAdd);
-	nodeToAdd->changeParent_only(this);
-}
-
-void Node::addChildren(Node* childrenNodes, int number_of_children)
-{
-	for (int i = 0; i < number_of_children; ++i)
-	{
-		this->children.push_back(childrenNodes + i);
-		(childrenNodes + i)->changeParent_only(this);
-	}
-}
-
-void Node::addChildren(std::vector<Node*> childrenNodes)
-{
-	for (int i = 0; i < children.size(); ++i)
-	{
-		this->children.push_back(childrenNodes[i]);
-		childrenNodes[i]->changeParent_only(this);
-	}
-}
-
-void Node::removeChild(Node* child) {
-	for (int i = 0; i < this->children.size(); ++i)
-	{
-		if (this->children[i] == child)
-		{
-			this->children.erase(this->children.begin() + i);
-			return;
-		}
-	}
-}
-
-void Node::printDirectory() {
-	this->doInParentPath(printNodeIdentity);
-	cout << endl;
-}
-
-std::vector<Node*> Node::getChildren() {
-	return this->children;
-}
-
-void Node::doInParentPath(void func(Node*)) {
-	Node* currentNode = this;
-	while (currentNode->parent != nullptr) {
-		func(currentNode);
-		currentNode = currentNode->parent;
-	}
-}
-
-Node* Node::getRootParent()
-{
-	Node* currentNode = this;
-	while (currentNode->parent != nullptr) {
-		currentNode = currentNode->parent;
-	}
-	return currentNode;
-}
-
-
-NODE_TYPE Node::getNodeType()
-{
-	return this->typeOfNode;
-}
-
-
-//End of memeber functions of Node obj
 
 
 //Node types' definitions
@@ -260,6 +161,7 @@ ModelNode::ModelNode(Node* parentIN,Model* model_in)
 	++ModelCount;
 	parentIN->addChildren(this);
 	getRootScene(parentIN)->addModel(this);
+	this->model->addNodeToMeshes(static_cast<Node*>(this));
 };
 
 void ModelNode::cleanupCall(Shader& shader)
@@ -272,6 +174,11 @@ void ModelNode::drawCall(Shader& shader)
 {
 	shader.addUniformMat4("model", &this->transform.getModelMatrix());
 	((Model*)model)->Draw(shader);
+}
+
+std::vector<Mesh*>* ModelNode::getMeshes()
+{
+	return this->model->getMeshes();
 }
 
 
@@ -431,7 +338,7 @@ DirLightNode createDirLightNode
 ModelNode createModelNode
 (std::vector<std::string>::const_iterator tokenValueBegin,
 	std::vector<std::string>::const_iterator tokenValueEnd,
-	Node* parent)
+	Node* parent,Material_Manager* matmanager)
 {
 	std::string filepath;
 	std::vector<std::string> tokenValuePairs(tokenValueBegin + 2, tokenValueEnd);
@@ -445,7 +352,7 @@ ModelNode createModelNode
 		}
 
 	}
-	Model* model = new Model(filepath);
+	Model* model = new Model(filepath,matmanager);
 	ModelNode* modelNodeToReturn = new ModelNode(parent, model);
 	modelNodeToReturn->name = *(tokenValueBegin + 1);
 	return *modelNodeToReturn;
@@ -476,12 +383,55 @@ Camera* createCameraForScene
 	return camToReturn;
 }
 
+SCENE_LIGHTS::SCENE_LIGHTS()
+{
+	setupLightBuffer();
+}
 
 SCENE_LIGHTS::SCENE_LIGHTS(std::vector<SpotLightNode*> sptLtIN, std::vector<PointLightNode*> ptLtIN, std::vector<DirLightNode*> dirLts)
 {
 	this->spotLightNodes = sptLtIN;
 	this->pointLightNodes = ptLtIN;
 	this->dirLightNodes = dirLts;
+	setupLightBuffer();
+}
+
+void SCENE_LIGHTS::setupLightBuffer()
+{
+	glCreateBuffers(1, &this->lightBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightBuffer);
+	
+	// Going to store lights in the format:
+	//	Point Light, Spot Lightt, Dir Light
+	//  Point Light, Spot Lightt, Dir Light
+	//  ...
+	// why? because this makes it easier(possible) to append lights to the buffer
+	// but yes it will result in excess memory usage
+
+	//also the buffer size for lights will be pre-decided, forcing a limit for max lights, which is unavoidable, but the limit is meant to be high
+
+	// Each light will store:
+	// a transformation matrix, a color, an intensity factor
+	// a spotlight will also store a cutoff angle (and maybe an outer cutoff angle)
+
+	//todo
+	 
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 16, nullptr, GL_DYNAMIC_READ);
+
+}
+
+
+
+bool compareMeshes(const Mesh* meshA, const Mesh* meshB)
+{
+	if (meshA->material_index < meshB->material_index)
+		return true;
+	return false;
+}
+
+void SCENE_MODELS::sortMeshes()
+{
+	std::sort(this->meshes.begin(), this->meshes.end(), compareMeshes);
 }
 
 void Scene::addLight(Node* node)
@@ -509,7 +459,14 @@ void Scene::addModel(Node* node)
 {
 	if (node->getNodeType() == MODEL_NODE)
 	{
-		this->models.modelNodes.push_back(NodeTypeCaster(node));
+		this->models.nodes.push_back(node);
+		ModelNode* modelnode = NodeTypeCaster(node);
+		std::vector<Mesh*> meshes_in_modelnode = *modelnode->getMeshes();
+		for (unsigned int i = 0; i < meshes_in_modelnode.size();++i)
+		{
+			this->models.meshes.push_back(meshes_in_modelnode[i]);
+		}
+
 	}
 	else
 	{
@@ -533,6 +490,8 @@ Scene::Scene(GLFWwindow* windowUsing, std::string sceneFilename)
 		std::string temp;
 		while (std::getline(sceneFile, temp))
 		{
+			if (temp[0] == '#')
+				continue;
 			std::stringstream currLine(temp);
 			std::vector<std::string> currElement;
 			std::string element;
@@ -557,7 +516,7 @@ Scene::Scene(GLFWwindow* windowUsing, std::string sceneFilename)
 	{
 		if (sceneElements[i][0] == "model")
 		{
-			createModelNode(sceneElements[i].begin(), sceneElements[i].end(), this);
+			createModelNode(sceneElements[i].begin(), sceneElements[i].end(), this,&this->matmanager);
 		}
 
 		if (sceneElements[i][0] == "dirLight")
@@ -636,11 +595,14 @@ void Scene::setGaussianBlurState(bool gsbState)
 
 void Scene::clean(Shader& shader)
 {
+	//TODO
+	/*
 	for (int i = 0;i < this->models.modelNodes.size();++i)
 	{
 		this->models.modelNodes[i]->cleanupCall(shader);
 		delete(this->models.modelNodes[i]);
 	}
+	*/
 	for (int i = 0;i < this->lights.dirLightNodes.size();++i)
 	{
 		this->lights.dirLightNodes[i]->cleanupCall(shader);
@@ -658,6 +620,7 @@ void Scene::clean(Shader& shader)
 	}
 	delete(this->mainCamera);
 }
+/*
 bool firstDraw = true;
 void Scene::draw(Shader& shader) {
 	if (firstDraw)
@@ -945,6 +908,7 @@ void Scene::drawFinal(Shader& shader, Shader& gaussianBlurShader, Shader& additi
 	shader.addUniform1I("texture1", 0);
 	glDrawArrays(GL_TRIANGLES,0, 6);
 }
+*/
 
 unsigned int Scene::getFinalImage()
 {
@@ -965,7 +929,28 @@ void Scene::setCurrentWindow(GLFWwindow* window)
 
 
 
+void SCENE_MODELS::newDraw()		//todo testing left
+{
+	sortMeshes();
+	unsigned int currMatIndex = 0;
+	this->scene_materials[meshes[0]->material_index]->bind();
+	for (unsigned int i = 0; i < meshes.size(); ++i)
+	{
+		if (meshes[i]->material_index != currMatIndex)
+		{
+			this->scene_materials[meshes[i]->material_index]->bind(); // only testing left
+			currMatIndex = meshes[i]->material_index;
+		}
+		meshes[i]->draw();		//todo make a new draw func		// only testing left
+	}
+}
 
+
+void Scene::newDraw(Shader& shader)		//todo only testing left
+{
+	glUseProgram(shader.program);
+	models.newDraw();
+}
 
 
 

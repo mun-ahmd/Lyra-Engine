@@ -1,9 +1,24 @@
 #include "Material_Manager.h"
 #include <vector>
 
+Material Material_Manager::createDefaultMat(unsigned int index)
+{
+	return Material(index);
+}
+
+Material_Manager::Material_Manager()
+{
+	this->materials = std::vector<Material*>();
+	Material* defaultMat = new Material(0);
+	this->materials.push_back(defaultMat);
+}
+
 Material_Manager::Material_Manager(unsigned int size)
 {
-	this->materials = std::vector<Material*>(size);
+	this->materials = std::vector<Material*>();
+	this->materials.reserve(size);
+	Material* defaultMat = new Material(0);
+	this->materials.push_back(defaultMat);
 }
 
 void Material_Manager::addMaterial(Material* mat)

@@ -4,67 +4,8 @@
 #include "lightObj.h"
 #include "Material_Manager.h"
 #include <sstream>
+#include "Node.h"
 
-
-class Transform
-{
-private:
-	glm::vec3 translation;
-	glm::vec3 scaleSize;
-	glm::vec4 rotation; //the first three values are the axis of rotation, the last is the angle rotated in radians
-public:
-	Transform();
-	void translate(glm::vec3 translationIN);
-	void scale(glm::vec3 scaleIN);
-	void rotate(glm::vec3 rotationAxis, float radians);
-
-	glm::mat4 getModelMatrix();
-};
-
-enum NODE_TYPE
-{
-	MODEL_NODE,
-	DIR_LIGHT_NODE,
-	POINT_LIGHT_NODE,
-	SPOT_LIGHT_NODE,
-	SCENE_NODE
-};
-
-
-class Node {
-protected:
-	Node();
-	Node* parent;
-	std::vector<Node*> children;
-	NODE_TYPE typeOfNode;
-	void doInParentPath(void func(Node*));
-public:
-	std::string name;
-	std::string internal_name;
-
-	Transform transform;
-
-
-
-	~Node();
-
-	void changeParent_only(Node* newParentNode);
-	//please remember this only changes the parent, NOTHING ELSE
-	void addChildren(Node* nodeToAdd);
-	void addChildren(Node* childrenNodes, int number_of_children);
-	void addChildren(std::vector<Node*> childrenNodes);
-
-	void removeChild(Node* childNode);
-
-	std::vector<Node*> getChildren();
-
-	NODE_TYPE getNodeType();
-	Node* getRootParent();
-
-	void printDirectory();
-
-	
-};
 
 
 
@@ -77,6 +18,7 @@ public:
 	ModelNode(Node* parentIN, Model* model);
 	void drawCall(Shader& shader);
 	void cleanupCall(Shader& shader);
+	std::vector<Mesh*>* getMeshes();
 };
 
 
@@ -115,25 +57,48 @@ public:
 
 
 
-
 class SCENE_LIGHTS
 {
 public:
-
-	std::vector<SpotLightNode*> spotLightNodes;
-	std::vector<PointLightNode*> pointLightNodes;
-	std::vector<DirLightNode*> dirLightNodes;
-	SCENE_LIGHTS() = default;
+	//Lights will be stored in an interleaved format in both buffer and cpu
+	//in the order of point, spot, dir
+	unsigned int lightBuffer;
+	SCENE_LIGHTS();
 	SCENE_LIGHTS(std::vector<SpotLightNode*> sptLtIN, std::vector<PointLightNode*> ptLtIN, std::vector<DirLightNode*> dirLts);
+	//todo a-lot
+	void addPointLight(PointLightNode* ptLight);
+	void addSpotLight(SpotLightNode* sptLight);
+	void addDirLight(DirLightNode* dirLight);
 	
+private:
+	struct lightGroup
+	{
+		PointLightNode* point;
+		SpotLightNode* spot;
+		DirLightNode* dir;
+	};
+	std::vector<lightGroup> lights;
+	unsigned int num_ptlights;
+	unsigned int num_sptlights;
+	unsigned int num_dirlights;
+	void setupLightBuffer();
+	void updateLightBuffer();
 };
+
 
 class SCENE_MODELS
 {
 public:
 	Material_Manager scene_materials;
-	std::vector<ModelNode*> modelNodes;
-	SCENE_MODELS() = default;
+	std::vector<Mesh*> meshes;
+	std::vector<Node*> nodes;
+	SCENE_MODELS()
+	{
+		meshes.reserve(10);
+		scene_materials = Material_Manager();
+	}
+	void sortMeshes();
+	void newDraw();
 };
 
 
@@ -156,6 +121,7 @@ private:
 	bool gaussianBlurState = false;
 	unsigned int pingpongFBO[2];
 	unsigned int pingpongBuffer[2];
+	Material_Manager matmanager;
 	void reGetWindowDimensions()
 	{
 		glfwGetWindowSize(this->currentWindow, &this->SCR_WIDTH, &this->SCR_HEIGHT);
@@ -187,6 +153,8 @@ public:
 	void lookAround();
 	void setupDeferredShading();
 	void clean(Shader& shader);
+	
+	void redesignDrawPrototype(Shader& shader);
 
 	/*
 	ModelNode* getModelNodeByName(std::string nameIN)
@@ -201,14 +169,16 @@ public:
 	}
 	*/
 
-
+	//TODO NO DEFINATIONS RIGHT NOW
 	void drawCall(Shader& shader) {}
-	void draw(Shader& shader);
-	void drawFinal(Shader& shader, Shader& gaussianBlurShader, Shader& additiveMixingShader);
-	void ShadowsPass(Shader& shader);
-	void GeometryPass(Shader& shader);
-	void LightingPass(Shader& shader);
+	void draw(Shader& shader) {}
+	void drawFinal(Shader& shader, Shader& gaussianBlurShader, Shader& additiveMixingShader) {}
+	void ShadowsPass(Shader& shader) {}
+	void GeometryPass(Shader& shader) {}
+	void LightingPass(Shader& shader) {}
 	void reloadScene();
+
+	void newDraw(Shader& shader);
 };
 
 void doJobOnAllNodesBelow(Node* root);

@@ -156,6 +156,7 @@
     <ClCompile Include="Material_Manager.cpp" />
     <ClCompile Include="meshObj.cpp" />
     <ClCompile Include="Model_Importer.cpp" />
+    <ClCompile Include="Node.cpp" />
     <ClCompile Include="Project.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="shaderObj.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="Material_Manager.h" />
     <ClInclude Include="meshObj.h" />
     <ClInclude Include="Model_Importer.h" />
+    <ClInclude Include="Node.h" />
     <ClInclude Include="Project.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="shaderObj.h" />
@@ -186,6 +188,8 @@
     <None Include="Shaders\lightCubeVertexShader.glsl" />
     <None Include="Shaders\lightingPassF.glsl" />
     <None Include="Shaders\lightingPassV.glsl" />
+    <None Include="Shaders\newDrawFrag.glsl" />
+    <None Include="Shaders\newDrawVert.glsl" />
     <None Include="Shaders\reflectCubeFragment.glsl" />
     <None Include="Shaders\reflectCubeVertex.glsl" />
     <None Include="Shaders\reflectionFragmentShader.glsl" />

@@ -13,6 +13,11 @@
 #include <assimp/postprocess.h>
 #include "stb_image.h"
 
+#include "MaterialObj.h"
+#include "Material_Manager.h"
+
+#include "Node.h"
+
 
 unsigned int createCubeMap(std::vector<std::string> faces, std::string directory);
 unsigned int TextureFromFile(const char* path, const std::string& directory, std::string type = "");
@@ -23,29 +28,46 @@ struct Vertex {
     glm::vec2 TexCoords;
 };
 
-struct Texture {
-    unsigned int id;
-    std::string type;
-    std::string filePath;       //this is to check if the texture is already loaded or not if it comes up again
-};
-
 class Mesh
 {
 public:
     // mesh data
     std::vector<Vertex>       vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture>      textures;
     float shininess;
     unsigned int material_index = 0;
+    unsigned int models_using = 0;  //maybe won't use lets see
      
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, float shininess = 32.0f);
     Mesh();
-    Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, unsigned int materialIndex);
+    Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices,  unsigned int materialIndex);
+    ~Mesh();
+    Mesh(const Mesh& other);
+    Mesh& operator=(const Mesh& other);
 
+    void draw();
     void draw(Shader& shader);
-    void drawGeometryPass(Shader& shader);
+    /*
+    new draw func:
+    assume materials have been bound
+    if(modelsUsing.size() > 1
+        write to uniform buffer their model matrices
+        draw them instanced
+        //will have to create new instanced draw shader
+    else
+        draw it normally
+    */
 
+
+    void drawGeometryPass(Shader& shader, Material_Manager *matmanager);
+
+    void addNodeUsing(Node* node)
+    {
+        this->nodesUsing.push_back(node);
+    }
+    void removeFromNodesUsing(Node* node)
+    {
+        std::remove(nodesUsing.begin(), nodesUsing.end(), node);
+    }
 
     int getL3D_size();
     void writeToL3D(std::ofstream& file);
@@ -53,54 +75,47 @@ public:
     void readFromL3D(std::ofstream& file);
 
 
-    void cleanup(Shader& shader);
 protected:
     //  render data
-    unsigned int VAO, VBO, EBO , nullTexDiffuse , nullTexSpecular;
+    unsigned int VAO, VBO, EBO;
+    std::vector<Node*> nodesUsing;
 
     void setupMesh();
 };
 
 
 
-
+//as of now l3d loading is out of date as well as l3d storing
 class Model
 {
 public:
     Model() = default;
-    Model(std::string pathStr, bool importer)
+    //Model(std::string pathStr, bool l3d)
+    //{
+    //    loadModel_L3D(pathStr);
+    //}
+    Model(std::string pathStr, Material_Manager* matManager)
     {
-        loadModel(pathStr);
+        loadModel(pathStr, matManager);
     }
-    Model(std::string pathStr)
-    {
-        loadModel_L3D(pathStr);
-    }
+    ~Model();
+    Model(const Model& other);
+    Model& operator=(const Model& other);
     void Draw(Shader& shader);
-    void drawDeferredFirstPass(Shader& shader);
+    void drawDeferredFirstPass(Shader& shader,Material_Manager* matManager);
     void Cleanup(Shader& shader);
+    std::vector<Mesh*>* getMeshes();
+    void addNodeToMeshes(Node* node);
     std::string directory;
-    std::string fileName;
-    bool modelLoaded = false;
-    void storeToFastLoad();
-
-    void storeModelToL3D(std::string filePath);
-
-
 private:
     // model data
-    std::vector<Mesh> meshes;
-    std::vector<Texture> textures_loaded; //to contain all textures already loaded
-    void loadModel(std::string path);
+    void loadModel(std::string path, Material_Manager* matManager);
+    std::vector<Mesh*> meshes;
     void loadModel_L3D(std::string path);
-
-    void processNode(aiNode* node, const aiScene* scene);
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
-    std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type,
-        std::string typeName);
-    
-    
 };
+
+
+std::string ImportModel(std::string path,Material_Manager* matmanager);
 
 /*
 class Skybox :public Mesh {

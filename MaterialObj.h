@@ -16,7 +16,7 @@ constexpr auto MATERIAL_MIN_METALLIC = 0.0f;
 constexpr auto MATERIAL_MAX_SPECULAR = 1.0f;
 constexpr auto MATERIAL_MIN_SPECULAR = 0.0f;
 
-enum class MATERIAL_TYPE_INTERNAL
+enum material_internal
 {
 	MATERIAL_DIFFUSE_INTERNAL,
 	MATERIAL_TRANSPARANCY_INTERNAL,
@@ -29,47 +29,27 @@ enum class MATERIAL_TYPE_INTERNAL
 class Material
 {
 private:
-	unsigned int matIndex;
-	unsigned int diffuse;
-	unsigned int specular;
-	unsigned int roughness;
-	unsigned int metallic;
-	unsigned int transparancy;
-
-	unsigned int defaultTransparant();
+	unsigned int matIndex;//1 channel
+	unsigned int diffuse;//rgb 3 channels
+	unsigned int specular;//1 channel
+	unsigned int roughness;//1 channel
+	unsigned int metallic;//1 channel
+	unsigned int transparancy;//1 channel
 
 	//unsigned int createTextureMap(float value);
 
 	//this second one is used instead of first because I did not want to type the same thing 16 times
-	unsigned int createTextureMap(float value,MATERIAL_TYPE_INTERNAL type = MATERIAL_TYPE_INTERNAL::MATERIAL_ANY_INTERNAL);
-	unsigned int createTextureMap(glm::vec3 diffuseIN, MATERIAL_TYPE_INTERNAL type = MATERIAL_TYPE_INTERNAL::MATERIAL_DIFFUSE_INTERNAL);
-	unsigned int createTextureMap(std::string path, MATERIAL_TYPE_INTERNAL type);
+	unsigned int createTextureMap(float value, material_internal type = MATERIAL_ANY_INTERNAL);
+	unsigned int createTextureMap(glm::vec3 diffuseIN, material_internal type = MATERIAL_DIFFUSE_INTERNAL);
+	unsigned int createTextureMap(std::string path, material_internal type);
 
 	void cleanupTexture(unsigned int* texture);
 
 public:
 
-	Material(int Index);
-
-	Material(glm::vec3 diffuseIN, float specularIN, float roughnessIN, float metallicIN, int Index);
-	Material(std::string diffuseIN, std::string specularIN, std::string roughnessIN, std::string metallicIN, int Index);
-
-	Material(std::string diffuseIN, std::string specularIN, std::string roughnessIN, float metallicIN, int Index);
-	Material(std::string diffuseIN, std::string specularIN, float roughnessIN, std::string metallicIN, int Index);
-	Material(std::string diffuseIN, float specularIN, std::string roughnessIN, std::string metallicIN, int Index);
-	Material(glm::vec3 diffuseIN, std::string specularIN, std::string roughnessIN, std::string metallicIN, int Index);
-
-	Material(glm::vec3 diffuseIN, float specularIN, std::string roughnessIN, std::string metallicIN, int Index);
-	Material(glm::vec3 diffuseIN, std::string specularIN, float roughnessIN, std::string metallicIN, int Index);
-	Material(glm::vec3 diffuseIN, std::string specularIN, std::string roughnessIN, float metallicIN, int Index);
-	Material(std::string diffuseIN, float specularIN, float roughnessIN, std::string metallicIN, int Index);
-	Material(std::string diffuseIN, std::string specularIN, float roughnessIN, float metallicIN, int Index);
-	Material(std::string diffuseIN, float specularIN, std::string roughnessIN, float metallicIN, int Index);
-
-	Material(glm::vec3 diffuseIN, float specularIN, float roughnessIN, std::string metallicIN, int Index);
-	Material(glm::vec3 diffuseIN, float specularIN, std::string roughnessIN, float metallicIN, int Index);
-	Material(glm::vec3 diffuseIN, std::string specularIN, float roughnessIN, float metallicIN, int Index);
-	Material(std::string diffuseIN, float specularIN, float roughnessIN, float metallicIN, int Index);
+	Material(unsigned int Index);
+	Material(glm::vec3 diffuseVal, float specularVal, float roughnessVal, float metallicVal, float transparancyVal, unsigned int Index);
+	Material(unsigned int diffuseTex, unsigned int specularTex, unsigned int roughnessTex, unsigned int metallicTex, unsigned int transparancyTex, unsigned int Index, bool zeromeansdefault = false);
 
 
 	
@@ -90,5 +70,26 @@ public:
 	void change_transparent(glm::vec3 new_transparent);
 	void change_transparent(std::string new_transparent_path);
 
+	unsigned int getTexture(int which);		// 0  to 4 in order of textures not including matindex
+					//not a good solution, very lazy
+
+
+
+
+	void bind();
+
+
+	unsigned int getdiffuse()
+	{
+		return diffuse;
+	}
+	unsigned int getspecular()
+	{
+		return specular;
+	}
 };
 
+
+
+
+static Material Lyra_default_mat = Material(glm::vec3(1.0, 1.0, 1.0), 0.5, 0.0, 0.0,1.0, 0);	//zero index will be reserved for the default texture

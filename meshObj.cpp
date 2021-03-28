@@ -2,37 +2,16 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include "Model_Importer.h"
+#include "Node.h"
 
 
 //memory layout of Vertex struct would be like:
 // = [0.2f, 0.4f, 0.6f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f];
 //so sizeof and offsetof make it easy to setup buffer
 
-void meshToLyraStore(Mesh& mesh, std::ostream* data_file) {
-    std::ostream_iterator<float> vertex_data_out(*data_file, ",");
-    std::ostream_iterator<unsigned int> index_data_out(*data_file, ",");
-    std::ostream_iterator<std::string> tex_data_out(*data_file, ",");
-    for (int i = 0; i < mesh.vertices.size();++i)
-    {
-        Vertex vertex = mesh.vertices[i];
-        std::vector<float> vertexDataToStore = { vertex.Position.x , vertex.Position.y , vertex.Position.z, vertex.Normal.x, vertex.Normal.y , vertex.Normal.z , vertex.TexCoords.x, vertex.TexCoords.y };
-        std::copy(vertexDataToStore.begin(), vertexDataToStore.end(), vertex_data_out);
-        //*data_file << ";";
-    }
-    *data_file << "\t";
-    std::copy(mesh.indices.begin(), mesh.indices.end(), index_data_out);
-    *data_file << "\t";
-    std::vector<std::string> texturesLoc;
-    for (int z = 0; z < mesh.textures.size(); ++z) 
-    {
-        texturesLoc.push_back(mesh.textures[z].filePath);
-    }
-    std::copy(texturesLoc.begin(), texturesLoc.end(), tex_data_out);
-    *data_file << "\t" << mesh.shininess;
-    *data_file << "\n";
-
-}
-
+/*
 unsigned int createCubeMap(std::vector<std::string> faces, std::string directory)
 {
     unsigned int textureID;
@@ -89,7 +68,8 @@ unsigned int createCubeMap(std::vector<std::string> faces, std::string directory
 }
 
 int texturesCounter = 0;
-void create1by1Tex(Texture& texture ,aiColor4D color) {
+void create1by1Tex(Texture& texture ,aiColor4D color) 
+{
     glGenTextures(1, &texture.id);
     std::cout << color.r;
     glm::vec4 colorUsable(color.r, color.g, color.b, color.a);
@@ -97,13 +77,6 @@ void create1by1Tex(Texture& texture ,aiColor4D color) {
     int width, height, nrComponents;
     stbi_set_flip_vertically_on_load(false);
     float data[4] = { colorUsable.x , colorUsable.y , colorUsable.z,colorUsable.w };
-
-    texture.filePath = R"(FastLoading\texture)" + std::to_string(texturesCounter) + ".lyratex";
-    std::ofstream fileToStore; fileToStore.open(texture.filePath, std::ios::out);
-    for (int i = 0;i < 4;++i) {
-        fileToStore << data[i];
-    }
-    fileToStore.close();
 
     nrComponents = 4;
     width = 1; height = 1;
@@ -121,6 +94,31 @@ void create1by1Tex(Texture& texture ,aiColor4D color) {
 
 }
 
+
+
+void create1by1Tex1Channel(Texture& texture, aiColor3D color)
+{
+    glGenTextures(1, &texture.id);
+    std::cout << color.r;
+    float data= 0.25f *(color.r+color.g+ color.b);
+
+    int width, height, nrComponents;
+    stbi_set_flip_vertically_on_load(false);
+
+    nrComponents = 1;
+    width = 1; height = 1;
+
+    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RGBA, GL_FLOAT, &data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+}
+*/
 unsigned int TextureFromFile(const char* file, const std::string& directory , std::string type)
 {
     std::string filename = std::string(file);
@@ -197,17 +195,56 @@ unsigned int TextureFromFile(const char* file, const std::string& directory , st
 
 
 using namespace std;
+
+
+
+Mesh::Mesh()
+{
+    //dangerous constructor
+    shininess = 0.0f;
+    material_index = 0;
+}
+
+Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, unsigned int materialIndex)
+{
+    this->vertices = vertices;
+    this->indices = indices;
+    this->material_index = materialIndex;
+    setupMesh();
+}
+
+Mesh::~Mesh()
+{
+    unsigned int buffers[2]= { VBO, EBO };
+    glDeleteBuffers(2, &buffers[0]);
+    glDeleteVertexArrays(1, &VAO);
+    VAO, VBO, EBO = NULL;
+}
+
+Mesh::Mesh(const Mesh& other)
+{
+    VAO = other.VAO;
+    VBO = other.VBO;
+    EBO = other.EBO;
+    this->vertices = other.vertices;
+    this->indices = other.indices;
+    this->material_index = other.material_index;
+}
+
+Mesh& Mesh::operator=(const Mesh& other)
+{
+    VAO = other.VAO;
+    VBO = other.VBO;
+    EBO = other.EBO;
+    this->vertices = other.vertices;
+    this->indices = other.indices;
+    this->material_index = other.material_index;
+    return *this;
+}
+
+
 void Mesh::setupMesh()
 {
-
-    if (textures.size() == 0) {
-        Texture defaultTex;
-        defaultTex.type = "texture_diffuse";
-        defaultTex.id = TextureFromFile("default_white.png", "Images");
-        textures.push_back(defaultTex);        
-        defaultTex.type = "texture_specular";
-        textures.push_back(defaultTex);
-    }
 
 
     if (indices.size() == 1) {
@@ -246,14 +283,38 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
+void Mesh::draw()
+{
+    //assume material for this has already been binded
+    // draw mesh
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    //glBindVertexArray(0);
+    //potentially dangerous
+}
+
+void Mesh::draw(Shader& shader)
+{
+    //assume material for this has already been binded
+    // draw mesh
+    glUseProgram(shader.program);
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    //glBindVertexArray(0);
+    //potentially dangerous
+}
+
+
 int Mesh::getL3D_size()
 {
-    int totalSizeOfMesh = sizeof(this->vertices) + sizeof(this->indices);
+    int totalSizeOfMesh = sizeof(this->vertices)*sizeof(Vertex) + sizeof(this->indices)*sizeof(int) + sizeof(int)*3;   // no_of_vertices, no_of indices, vertices, indices,  material_indez
+    /*
     for (int i = 0; i < textures.size(); ++i)
     {
         textures[i].filePath.shrink_to_fit();
         totalSizeOfMesh += sizeof(textures[i].filePath);
     }
+    */
     return totalSizeOfMesh;
 }
 
@@ -264,15 +325,9 @@ void Mesh::writeToL3D(std::ofstream& file)
 
     int verticesSize = this->vertices.size() * sizeof(Vertex) ;
     int indicesSize = this->indices.size() * sizeof(unsigned int);
-    int texturesSize = 0;
-    for (int i = 0; i < this->textures.size(); ++i)
-    {
-        texturesSize += sizeof(textures[i].filePath);
-    }
 
     file.write((char*)&verticesSize, sizeof(int));
     file.write((char*)&indicesSize, sizeof(int));
-    file.write((char*)&texturesSize, sizeof(int));
 
 
     file.write((char*)&this->vertices[0], verticesSize);
@@ -280,62 +335,24 @@ void Mesh::writeToL3D(std::ofstream& file)
 
     //TODO AFTER CREATING THE MATERIAL SYSTEM ADD THE MATERIAL NUMBER HERE AND REMOVE THE CURRENT THING WITH TEXTURES AND SHININESS
 
+    /*
     for (int i = 0; i < this->textures.size(); ++i)
     {
         const char* texPath = textures[i].filePath.c_str();
         file.write((char*)texPath, sizeof(*texPath));
     }
-
-    file.write((char*)&this->shininess, sizeof(int));
+    */
+    file.write((char*)&this->material_index, sizeof(int));
 }
 
-
-
-void Mesh::draw(Shader& shader)
-{
-    unsigned int diffuseNr = 1;
-    unsigned int specularNr = 1;
-
-    for (unsigned int i = 0; i < textures.size(); i++) {
-        //reserve first texture unit for shadows
-        glActiveTexture(GL_TEXTURE1 + i); // activate proper texture unit before binding
-        // retrieve texture number (the N in diffuse_textureN)
-        std::string number;
-        std::string name = textures[i].type;
-        if (name == "texture_diffuse") {
-            number = std::to_string(diffuseNr++);
-        }
-        else if (name == "texture_specular") {
-            number = std::to_string(specularNr++);
-        }
-        else {
-            std::cout << "Texture type is unidentified" << std::endl;
-            continue;
-        }
-
-        shader.addUniform1I(("material." + name + number).c_str(), i+1);
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
-    }
-
-    shader.addUniform1F("material.shininess", Mesh::shininess);
-
-
-    glActiveTexture(GL_TEXTURE0);
-
-    // draw mesh
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-}
-
-void Mesh::drawGeometryPass(Shader& shader)
+void Mesh::drawGeometryPass(Shader& shader, Material_Manager *matmanager)
 {
     //Ensure that proper gBuffer setup has been done before this!
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textures[0].id);
+    glBindTexture(GL_TEXTURE_2D, (*matmanager)[material_index]->getdiffuse());
     shader.addUniform1I("texture_diffuse1", 0);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textures[1].id);
+    glBindTexture(GL_TEXTURE_2D, (*matmanager)[material_index]->getspecular());
     shader.addUniform1I("texture_specular1", 1);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);
@@ -343,56 +360,28 @@ void Mesh::drawGeometryPass(Shader& shader)
     glBindVertexArray(0);
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, float shininess)
-{
-    this->vertices = vertices;
-    this->indices = indices;
-    this->textures = textures;  
-    this->shininess = shininess+0.001;
-    setupMesh();
-    //vertices.clear();
-    //vertices.shrink_to_fit();
-}
-
-Mesh::Mesh()
-{
-    shininess = 0.0f;
-    material_index = 0;
-}
-Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, unsigned int materialIndex)
-{
-    this->vertices = vertices;
-    this->indices = indices;
-    this->textures = textures;
-    setupMesh();
-    this->material_index = materialIndex;
-}
-
-void Mesh::cleanup(Shader& shader) {
-    for (int i = 0; i < textures.size();++i) {
-        glDeleteTextures(1, &textures[i].id);
-    }
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteProgram(shader.program);
-}
 
 
 //Model Functions
 
+
+
 //Draws all meshes in the model
 void Model::Draw(Shader& shader) {
     for (unsigned int i = 0;i < meshes.size();i++) {
-        meshes[i].draw(shader);
+        meshes[i]->draw(shader);
     }
 }
 
-void Model::drawDeferredFirstPass(Shader& shader)
+void Model::drawDeferredFirstPass(Shader& shader, Material_Manager *matmanager)
 {
     for (unsigned int i = 0;i < meshes.size();i++) {
-        meshes[i].drawGeometryPass(shader);
+        meshes[i]->drawGeometryPass(shader,matmanager);
     }
 }
 
+
+/*
 void Model::loadModel_L3D(std::string path)
 {
     std::ifstream file;
@@ -403,15 +392,51 @@ void Model::loadModel_L3D(std::string path)
     {
         //TODO error
     }
-    int no_of_meshes;
-    file.read((char*)&no_of_meshes, sizeof(int));
+    unsigned int no_of_meshes;
+    file.read((char*)&no_of_meshes, sizeof(unsigned int));
+
+    std::vector<unsigned int> mesh_offsets(no_of_meshes);
+    file.read((char*)&mesh_offsets[0], no_of_meshes * sizeof(unsigned int));
+
+
+    unsigned int header_size = 2 + mesh_offsets.size() * sizeof(unsigned int)+ sizeof(unsigned int) ;
+
+    std::vector<std::thread> threads;
+    threads.reserve(no_of_meshes);
+    std::vector<Mesh_Importer > meshImporters(no_of_meshes);
+
+
+    
     for (int i = 0; i < no_of_meshes; ++i)
     {
-        Mesh newMesh = Mesh()
+        meshImporters.push_back(Mesh_Importer());
+        threads.push_back(std::thread(std::ref(meshImporters[i]), path, mesh_offsets[i]));
     }
+    this->meshes.reserve(no_of_meshes);
+    for (int i = 0; i < no_of_meshes; ++i)
+    {
+        if(threads[i].joinable())
+            threads[i].join();
+        this->meshes.push_back(meshImporters[i].mesh);
+    }
+    
 }
+*/
 
-void Model::loadModel(std::string path)
+
+
+struct meshANDmat
+{
+    Mesh mesh;
+    Material* mat;
+};
+
+
+std::vector<Mesh*> processNode(aiNode* node, const aiScene* scene);
+std::vector<unsigned int> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
+Mesh* processMesh(aiMesh* mesh, const aiScene* scene);
+
+void Model::loadModel(std::string path, Material_Manager* matManager)
 {
     Assimp::Importer import;
     //the below does most of the loading work, aside from path the rest arguements are optional postprocessing, here I tell it I want it in triangles and textures flipped on y-axis
@@ -424,15 +449,18 @@ void Model::loadModel(std::string path)
         return;
     }
     directory = path.substr(0, path.find_last_of(R"(\)")); 
-    fileName = path.substr(path.find_last_of(R"(\)", path.find_last_of(".")));
+    //fileName = path.substr(path.find_last_of(R"(\)", path.find_last_of(".")));
     //directory is used to get texture locations for the model
-    processNode(scene->mRootNode, scene);
+    //NOT CURRENTLY^^^
+    this->meshes = processNode(scene->mRootNode, scene);
 
-    modelLoaded = true;
+    
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene)
+std::vector<Mesh*> processNode(aiNode* node, const aiScene* scene)
 {
+    std::vector<Mesh*> meshes;
+    meshes.reserve(node->mNumMeshes);
     // process all the node's meshes (if any)
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
@@ -443,69 +471,34 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     // then do the same for each of its children
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        processNode(node->mChildren[i], scene);
-    }
-}
-
-std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
-{
-    std::vector<Texture> textures;
-
-
-    for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-    {
-        aiString str;
-        mat->GetTexture(type, i, &str);
-        bool skip = false;
-        for (unsigned int j = 0; j < textures_loaded.size(); j++)
+        std::vector<Mesh*> new_meshes = processNode(node->mChildren[i], scene);
+        for (unsigned int i = 0; i < new_meshes.size();++i)
         {
-            if (std::strcmp(textures_loaded[j].filePath.data(), str.C_Str()) == 0)
-            {
-                textures.push_back(textures_loaded[j]);
-                skip = true;
-                break;
-            }
-        }
-        if (!skip)
-        {   // if texture hasn't been loaded already, load it
-            Texture texture;
-            texture.id = TextureFromFile(str.C_Str(), R"(3DModelData\rocks\)",typeName);//, this->directory);
-            texture.type = typeName;
-            texture.filePath = str.C_Str();
-            textures.push_back(texture);
-            textures_loaded.push_back(texture); // add to loaded textures
+            meshes.push_back(new_meshes[i]);
         }
     }
-
-    if (mat->GetTextureCount(type) == 0) {
-        if (type == aiTextureType_DIFFUSE) {
-            aiColor4D Color;
-            mat->Get(AI_MATKEY_COLOR_DIFFUSE, Color);
-            Texture texture;
-            texture.type = typeName;
-            create1by1Tex(texture,Color);
-            textures.push_back(texture);
-        }
-        else if (type == aiTextureType_SPECULAR) {
-            aiColor4D Color;
-            mat->Get(AI_MATKEY_COLOR_SPECULAR, Color);
-            Texture texture;
-            texture.type = typeName;
-            create1by1Tex(texture,Color);
-            textures.push_back(texture);
-        }
-    }
-
-    return textures;
+    return meshes;
 }
 
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
+std::vector<unsigned int> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
 {
+    //todo
+    //redo this whole thing
+    std::vector<unsigned int> yes = { 0 };
+    return yes;
+}
+
+
+Mesh* processMesh(aiMesh* mesh, const aiScene* scene)
+{
+    //right now defaults material to basic mat
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture> textures;
-    float shininessValue = 32;
+    
+    vertices.reserve(mesh->mNumVertices);
+    indices.reserve(mesh->mNumFaces*3);
+    
 
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
     {
@@ -552,32 +545,66 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         for (unsigned int j = 0; j < face.mNumIndices; j++)
             indices.push_back(face.mIndices[j]);
     }
+
+    /*
     // process material
     if (mesh->mMaterialIndex >= 0)
     {
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-        std::vector<Texture> diffuseMaps = loadMaterialTextures(material,
+        std::vector<unsigned int> diffuseMaps = loadMaterialTextures(material,
             aiTextureType_DIFFUSE, "texture_diffuse");
-        textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-        std::vector<Texture> specularMaps = loadMaterialTextures(material,
+        //textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+        std::vector<unsigned int> specularMaps = loadMaterialTextures(material,
             aiTextureType_SPECULAR, "texture_specular");
-        textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+        //textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
         //get shininess for specular lighting
         material->Get(AI_MATKEY_SHININESS, shininessValue);
     }
     std::cout << "og shininess" << shininessValue;
     
-    return Mesh(vertices, indices, textures, shininessValue);
+    unsigned int spec;
+    unsigned int diffuse;
+    //todo no mat rn
+
+
+    Material* currMat = new Material(0,0,0,0,true);
+    matManager->addMaterial(currMat);
+    
+    std::vector<Texture> textures1 = {};
+    */
+
+    Mesh* final_mesh = new Mesh(vertices, indices, 0);  //using 0th material for now
+    return final_mesh;
 }
 
-
-void Model::Cleanup(Shader& shader) {
-    for (unsigned int i = 0;i < meshes.size(); i++) {
-        meshes[i].cleanup(shader);
+void Model::addNodeToMeshes(Node* node)
+{
+    for (unsigned int i = 0; i < meshes.size(); ++i)
+    {
+        meshes[i]->addNodeUsing(node);
     }
 }
 
+void Model::Cleanup(Shader& shader) {
+    for (unsigned int i = 0;i < meshes.size(); i++) {
+        meshes[i]->~Mesh();
+    }
+}
+
+Model::~Model()
+{
+    for (unsigned int i = 0;i < meshes.size(); i++) {
+        meshes[i]->~Mesh();
+    }
+}
+
+std::vector<Mesh*>* Model::getMeshes()
+{
+    return &this->meshes;
+}
+
+/*
 void Model::storeToFastLoad() {
     if (modelLoaded != true) {
         std::cout << "Model Not Loaded Yet";
@@ -588,11 +615,12 @@ void Model::storeToFastLoad() {
     fastLoadFile.open(R"(FastLoading\test2.lyra)", std::ios::out);
     for (int i = 0; i < Model::meshes.size(); ++i) 
     {
-        meshToLyraStore(Model::meshes[i], &fastLoadFile);
+        meshToLyraStore(*Model::meshes[i], &fastLoadFile);
     }
 }
+*/
 
-
+/*
 void Model::storeModelToL3D(std::string filePath)
 {
     std::ofstream file;
@@ -604,18 +632,42 @@ void Model::storeModelToL3D(std::string filePath)
     int no_of_meshes = this->meshes.size();
     file.write((char*)&no_of_meshes, sizeof(int));
 
+    int header_size = 2 + sizeof(int) ;
+    file.write((char*)& header_size, sizeof(int));
+    for (int i = 1; i < no_of_meshes; ++ i)
+    {
+        int mesh_size = header_size+ this->meshes[i-1]->getL3D_size();
+        file.write((char*)&mesh_size, sizeof(int));
+    }
+
     for (int i = 0; i < this->meshes.size(); ++i)
     {
-        int meshSize = this->meshes[i].getL3D_size();
+        int meshSize = this->meshes[i]->getL3D_size();
         file.write((char*)&meshSize, sizeof(int));
     }
 
     for (int i = 0; i < this->meshes.size(); ++i)
     {
-        this->meshes[i].writeToL3D(file);
+        this->meshes[i]->writeToL3D(file);
     }
 
     file.close();
 }
+*/
+/*
+std::string ImportModel(std::string path, Material_Manager* matmanager)
+{
+    Assimp::Importer import;
+    //the below does most of the loading work, aside from path the rest arguements are optional postprocessing, here I tell it I want it in triangles and textures flipped on y-axis
+    const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate);//| aiProcess_FlipUVs);
 
-
+    //if there is an error in loading model, this will let you know
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
+        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
+        return;
+    }
+    //..Process Nodes
+    processNode(scene->mRootNode, scene, matmanager);
+}
+*/

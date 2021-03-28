@@ -845,7 +845,7 @@ void imageRender(GLFWwindow* window)
 
 	glm::mat4 skyboxView = glm::mat4(1);
 
-	unsigned int skyboxTexId = createCubeMap(faces, R"(Images\skybox)");
+	//unsigned int skyboxTexId = createCubeMap(faces, R"(Images\skybox)");
 
 	glCullFace(GL_BACK);
 	//glEnable(GL_CULL_FACE);
@@ -862,8 +862,8 @@ void imageRender(GLFWwindow* window)
 
 	//ModelNode vaibhavNode = ModelNode(&scene, &vaibhav);
 
-	Model birch = Model(R"(3DModelData\birchTree\birchTree.obj)");
-	Model cubePlayer = Model(R"(3DModelData\marsLand(nishchay\map.obj)");
+	//Model birch = Model(R"(3DModelData\birchTree\birchTree.obj)");
+	//Model cubePlayer = Model(R"(3DModelData\marsLand(nishchay\map.obj)");
 
 	//float timePreStore = glfwGetTime();	birch.storeToFastLoad();	cout << glfwGetTime() - timePreStore;
 	/*
@@ -888,7 +888,7 @@ void imageRender(GLFWwindow* window)
 	//cout <<"\n\n\n\n\n\n\n\n"<< birchtrees5.identify <<"\n"<< birchtrees5Copy->identify<< "\n\n\n\n\n\n\n\n\n\n";
 	//birchNode.rotateDegrees(90, glm::vec3(0, 0, 1));
 	
-	ModelNode playerNode = ModelNode(&scene, &cubePlayer);
+	//ModelNode playerNode = ModelNode(&scene, &cubePlayer);
 
 	DirectionalLight dirLight = DirectionalLight(glm::vec3(0.4f, 0.2f, 0.6f), glm::vec3(1)*15.f);
 	//dirLight.setIntensity(6);
@@ -1230,6 +1230,7 @@ void imageRender222(GLFWwindow* window)
 	Shader additiveMixTexShader = Shader(shaderDir + "additiveMixTexV.glsl", shaderDir + "additiveMixTexF.glsl");
 	Shader shadowsShader = Shader(shaderDir + "shadowsShaderVertex.glsl", shaderDir + "shadowsShaderFragment.glsl");
 
+	Shader newDrawTestShader = Shader(shaderDir + "newDrawVert.glsl", shaderDir + "newDrawFrag.glsl");
 
 	//Shader reflectionShader = Shader(shaderDir + "reflectionVertexShader.glsl", shaderDir + "reflectionFragmentShader.glsl");
 
@@ -1259,6 +1260,8 @@ void imageRender222(GLFWwindow* window)
 	glUseProgram(deferredFirstPass.program);
 	deferredFirstPass.addUniformMat4("projection", &projection);
 
+	glUseProgram(newDrawTestShader.program);
+	newDrawTestShader.addUniformMat4("projection", &projection);
 
 	float deltaTime = 0.0f;
 	float timeSinceLastFrame = 0.0f;
@@ -1274,11 +1277,13 @@ void imageRender222(GLFWwindow* window)
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	std::cout << sizeof(glm::mat4);
-	Scene scene1 = Scene(window, "scenefile.txt");
+	Scene scene1 = Scene(window,"scenefile.txt");
 
-	Model model2(R"(C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\3DModelData\birchTree\birchTree.obj)");
+	//Model model2(R"(C:\Users\munee\source\repos\Lyra Engine\Lyra Engine\3DModelData\birchTree\birchTree.obj)");
 	//ModelNode modelNode = ModelNode(&scene1, &model2)
-	model2.storeModelToL3D("nishchay_is_powerful.L3D");
+	//model2.storeModelToL3D("nishchay_is_not_powerful.L3D");
+
+	//Model model_man= Model("nishchay_is_not_powerful.L3D",false);
 	
 	
 
@@ -1291,10 +1296,25 @@ void imageRender222(GLFWwindow* window)
 	std::cout << lightShader.getFragmentShaderSource(50);
 	std::cout << lightShader.getVertexShaderSource(50);
 
-	scene1.setupDeferredShading();
+	//scene1.setupDeferredShading();
 
 
-	scene1.setGaussianBlurState(true);
+	//scene1.setGaussianBlurState(true);
+	glUseProgram(newDrawTestShader.program);
+	newDrawTestShader.addUniform1I("diffuse", 0);
+	newDrawTestShader.addUniform1I("specular", 1);
+	newDrawTestShader.addUniform1I("roughness", 2);
+	newDrawTestShader.addUniform1I("metallic", 3);
+	newDrawTestShader.addUniform1I("transparancy", 4);
+
+
+
+
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	glClearColor(0.3, 0.3, 0.3, 1.0);
 
 	do {
 
@@ -1321,22 +1341,24 @@ void imageRender222(GLFWwindow* window)
 
 		glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-		glClearColor(0.3, 0.3, 0.3, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+		//glClear(GL_COLOR_BUFFER_BIT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
+		newDrawTestShader.addUniformMat4("view", &scene1.getMainCamera()->getViewMatrix());
 
 		//scene1.ShadowsPass(shadowsShader);
 
-		scene1.GeometryPass(deferredFirstPass);
+		//scene1.GeometryPass(deferredFirstPass);
 
-		scene1.LightingPass(deferredSecondPass);
+		//scene1.LightingPass(deferredSecondPass);
 
-		scene1.drawFinal(texDrawShader,gaussianBlurShader,additiveMixTexShader);
+		//scene1.drawFinal(texDrawShader,gaussianBlurShader,additiveMixTexShader);
 
 		//drawTexture(scene1.getgNormal(), texDrawVAO, texDrawShader);
+
+		scene1.newDraw(newDrawTestShader);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
